@@ -175,7 +175,6 @@ class pipe_deladetect():
 
     def run_pipeline(self):
         self.load_setup()
-        self.load_eval()
         self.get_imagepaths()
         self.convert_csv2png()
         self.clean_dir(self.dstpath+"/processed")
@@ -184,7 +183,10 @@ class pipe_deladetect():
                 self.one_cycle()
         except: pass
         self.save_preds()
-        self.gen_confmatrix()
+        
+        self.load_eval()
+        if self.eval != None:
+            self.gen_confmatrix()
         #self.show_image()
     
     def gen_confmatrix(self):
@@ -198,7 +200,6 @@ class pipe_deladetect():
         for group, frame in df[["preds","label"]].groupby("label"):
             matrix[group]=dict(frame.value_counts().reset_index().set_index("preds")[0])
         confusionMatrix =[[matrix[1][1]/counttrue,matrix[1][0]/counttrue], [matrix[0][1]/countfalse,matrix[0][0]/countfalse]]
-
         acc_overall= (matrix[1][1]+matrix[0][0])/len(df)
 
         fig, ax = plt.subplots(figsize=(7.5, 7.5))
