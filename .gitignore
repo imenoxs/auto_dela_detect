@@ -2,3 +2,4 @@
 dst/
 src/
 .venv/
+__pycache__/

@@ -1,4 +1,5 @@
 import yaml
+import json
 import os
 import glob
 import shutil
@@ -75,7 +76,7 @@ class pipe_deladetect():
         colsum = colsum.apply(lambda x: 0 if x <= max/100*filterval or np.isnan(x) else x)
         peaks, props = scipy.signal.find_peaks(colsum, height=0)
         
-        if False:
+        if True:
             aspectratio = "auto"
             fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
             bases=[]
@@ -172,9 +173,12 @@ class pipe_deladetect():
         evalpath = self.srcpath+"/labels.csv"
         if os.path.exists(evalpath):
             self.eval = pd.read_csv(evalpath)
+            self.eval
+
 
     def run_pipeline(self):
         self.load_setup()
+        self.load_eval()
         self.get_imagepaths()
         self.convert_csv2png()
         self.clean_dir(self.dstpath+"/processed")
@@ -184,11 +188,10 @@ class pipe_deladetect():
         except: pass
         self.save_preds()
         
-        self.load_eval()
-        if self.eval != None:
+        if self.eval.empty != None:
             self.gen_confmatrix()
         #self.show_image()
-    
+        
     def gen_confmatrix(self):
         preds= self.predictions[["filename","prediction"]]
         df=self.eval
@@ -196,26 +199,38 @@ class pipe_deladetect():
         countfalse = len(df[df["label"]==0])
         df["preds"]=preds["prediction"].apply(lambda x: 1 if x == True else 0)
 
-        matrix = {}
+        matrix = {
+            0: {
+                0: 0,
+                1: 0
+            },
+            1: {
+                0: 0,
+                1: 0
+            }
+        }
         for group, frame in df[["preds","label"]].groupby("label"):
-            matrix[group]=dict(frame.value_counts().reset_index().set_index("preds")[0])
-        confusionMatrix =[[matrix[1][1]/counttrue,matrix[1][0]/counttrue], [matrix[0][1]/countfalse,matrix[0][0]/countfalse]]
-        acc_overall= (matrix[1][1]+matrix[0][0])/len(df)
+            temp=dict(frame.value_counts().reset_index().set_index("preds")[0])
+            for key in temp.keys():
+                matrix[group][key] = temp[key]
 
-        fig, ax = plt.subplots(figsize=(7.5, 7.5))
-        conf_matrix=confusionMatrix
-        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
-        for i in range(len(conf_matrix)):
-            for j in range(len(conf_matrix[1])):
-                ax.text(x=j, y=i,s=conf_matrix[i][j], va='center', ha='center', size='xx-large')
-        
-        plt.xlabel('Predictions', fontsize=18)
-        plt.ylabel('Actuals', fontsize=18)
-        plt.title(f'Confusion Matrix', fontsize=18)
-        plt.figtext(0, 0, f'Dataset Size: {len(df)}\nSample Split: {countfalse/len(df)}\nAcc: {acc_overall}')
-        #plt.show()
-        fig.savefig(self.dstpath+"/confusion")
-        plt.close("all")
+        if True:
+            confusionMatrix =[[matrix[1][1]/counttrue,matrix[1][0]/counttrue], [matrix[0][1]/countfalse,matrix[0][0]/countfalse]]
+            self.acc= (matrix[1][1]+matrix[0][0])/len(df)
+            fig, ax = plt.subplots(figsize=(7.5, 7.5))
+            conf_matrix=confusionMatrix
+            ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
+            for i in range(len(conf_matrix)):
+                for j in range(len(conf_matrix[1])):
+                    ax.text(x=j, y=i,s=conf_matrix[i][j], va='center', ha='center', size='xx-large')
+            
+            plt.xlabel('Predictions', fontsize=18)
+            plt.ylabel('Actuals', fontsize=18)
+            plt.title(f'Confusion Matrix', fontsize=18)
+            plt.figtext(0, 0, f'Dataset Size: {len(df)}\nSample Split: {countfalse/len(df)}\nAcc: {self.acc}')
+            #plt.show()
+            fig.savefig(self.dstpath+"/confusion")
+            plt.close("all")
 
 
 if __name__ == "__main__":
