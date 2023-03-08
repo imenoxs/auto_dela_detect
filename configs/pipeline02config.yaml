@@ -1,0 +1,21 @@
+Cropping:
+  bottom: 60
+  left: 0
+  right: 0
+  top: 0
+General:
+  conversionstat: true
+Hyperparameters:
+  batch_size: 82
+  epochs: 400
+  from_logits: 'true'
+  layers: 8
+  lr_adam: 0.08334257653523763
+  lr_sdg: 0.06069210019291171
+  neurons: 3638
+  neurons1: 726
+  neurons2: 1710
+  optimizer: adam
+Paths:
+  dstpath: ./dst/2302_pez_tfds
+  srcpath: ./dst/2302_pez_tfds/traindat

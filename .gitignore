@@ -3,3 +3,4 @@ dst/
 src/
 .venv/
 __pycache__/
+*.sqlite3

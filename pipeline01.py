@@ -76,7 +76,7 @@ class pipe_deladetect():
         colsum = colsum.apply(lambda x: 0 if x <= max/100*filterval or np.isnan(x) else x)
         peaks, props = scipy.signal.find_peaks(colsum, height=0)
         
-        if True:
+        if True: #Toggles ploting of overview images
             aspectratio = "auto"
             fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
             bases=[]
@@ -130,7 +130,7 @@ class pipe_deladetect():
 
 
     def load_setup(self): # loads config from config.yaml
-        with open('config.yaml', 'r') as file:
+        with open('configs/pipelin01config.yaml', 'r') as file:
             self.config = yaml.safe_load(file)
         self.srcpath = self.config["Paths"]["srcpath"]
         self.dstpath = self.config["Paths"]["dstpath"]

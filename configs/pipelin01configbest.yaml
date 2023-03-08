@@ -1,0 +1,17 @@
+Cropping:
+  bottom: 60
+  left: 0
+  right: 0
+  top: 0
+Erodil:
+  dil_iters: 6
+  ero_iters: 2
+  kernel: 1
+Paths:
+  dstpath: ./dst/2302_pez
+  srcpath: ./src/2302_pez
+Processing1:
+  movingaverage: 5
+  threshold: 0
+Thresholding:
+  thrval: 44
