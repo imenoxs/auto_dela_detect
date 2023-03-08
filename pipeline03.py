@@ -159,8 +159,7 @@ class pipe_deladetect():
 
     def create_model(self):
         optimizer = self.config["Hyperparameters"]["optimizer"]
-        neurons1 = self.config["Hyperparameters"]["neurons1"]
-        neurons2 = self.config["Hyperparameters"]["neurons2"]        
+        neurons = self.config["Hyperparameters"]["neurons"]
         layers = self.config["Hyperparameters"]["layers"]        
         lr_adam = self.config["Hyperparameters"]["lr_adam"]
 
@@ -172,9 +171,9 @@ class pipe_deladetect():
 
         inputs = tf.keras.layers.Input(shape=self.image_size)
         x = tf.keras.layers.Flatten()(inputs)
-        x =  tf.keras.layers.Dense(neurons1, activation='relu')(x)
+        x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
         for i in range(layers):
-            x =  tf.keras.layers.Dense(neurons2, activation='relu')(x)
+            x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
         outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
         self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
@@ -187,7 +186,7 @@ class pipe_deladetect():
         self.model.compile(optimizer=optimizerdict[optimizer], loss=lossfunctsdict["binary_crossentropy"], metrics=['accuracy'])
     
     def trainmodel(self):
-
+        print(self.config["Hyperparameters"])
         callbackslst=[]
         cb_earlystop= tf.keras.callbacks.EarlyStopping(
                 monitor='val_loss',

@@ -3,6 +3,7 @@ This repo contains several approaches to detect delaminations in cfrp images fro
 The several pipeline python files each contain one approach.
 Each pipeline also has a optimizer python file with the corresponding number.
 The optimizers use the optuna framework to optimize the parameters of the respective approach.
+To see the results of the optuna training you can start the environment with ´`optuna-dashboard sqlite:///<optuna-db-name-here>.sqlite3`
 in the configs folder there is also a yaml file containing the configuration of the pipelines.
 If the pipeline is run the configuration gets read from the associated file.
 
