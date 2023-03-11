@@ -6,11 +6,11 @@ Cropping:
 General:
   conversionstat: true
 Hyperparameters:
-  batch_size: 9
+  batch_size: 36
   epochs: 400
-  layers: 7
-  lr_adam: 0.09109478938241923
-  neurons: 10881
+  layers: 0
+  lr_adam: 0.034659233542555366
+  neurons: 224
   optimizer: adam
 Paths:
   dstpath: dst/2303_pez_dnn

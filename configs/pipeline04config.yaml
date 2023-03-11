@@ -1,0 +1,21 @@
+Cropping:
+  bottom: 60
+  left: 0
+  right: 0
+  top: 0
+General:
+  conversionstat: true
+  datahight: 1792
+  datashape: 0
+  datawidth: 128
+Hyperparameters:
+  batch_size: 9
+  epochs: 400
+  layers: 7
+  lr_adam: 0.09109478938241923
+  neurons: 10881
+  optimizer: adam
+Paths:
+  dstpath: dst/2309_pez_rf
+  oldsrc: src/2309_pez_rf
+  srcpath: dst/2309_pez_rf/traindat
