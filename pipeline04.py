@@ -1,20 +1,17 @@
 import yaml
-import json
 import os
 import glob
 import shutil
-import pandas as pd
 import numpy as np
-import cv2
 import matplotlib.pyplot as plt
-from matplotlib import transforms
-import scipy
-import inspect
 import tensorflow as tf
 import optuna
+from mlflow import log_metric, log_param, log_artifacts
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import random
+import mlflow
+import datetime
 
 
 plt.rcParams['image.cmap'] = 'gray'
@@ -26,8 +23,11 @@ class pipe_deladetect():
         self.config = None
         self.srcpath = None
         self.dstpath = None
-        self.configpath = 'configs/pipeline04config.yaml'
+        self.experiment_name = "pipeline04"
+        self.configpath = f'configs/{self.experiment_name}config.yaml'
         self.trial = trial
+
+        self.callbacks = []
         
         #dataset info
         self.datashape = None
@@ -84,6 +84,11 @@ class pipe_deladetect():
         except: pass
         os.makedirs(path)
 
+    def setup_mlflow(self):
+        mlflow.set_tracking_uri(f"sqlite:///{self.experiment_name}_mlf.db") #configures local sqlite database as logging target
+        mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
+        self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
+
     def trainvaltestsplit(self):
         data_dir = self.srcpath
         split_dir = self.dstpath+"/traindat"
@@ -105,7 +110,7 @@ class pipe_deladetect():
                 shutil.copy(path, val_dir)
             self.srcpath = split_dir
         self.config["General"]["conversionstat"] = True
-        self.config["Paths"]["srcpath"] = split_dir
+        self.config["Paths"]["srcpath"] = os.path.join(self.dstpath, "tfds")
         self.save_config()
 
     def save_config(self):
@@ -145,10 +150,8 @@ class pipe_deladetect():
                         if max(lst)==0 and searchlir:
                             lastinforow=i-1
                             searchlir = False
-                x_local.append(np.genfromtxt(local_datalst[0], delimiter=",")[:lastinforow])
+                x_local.append(np.reshape((np.genfromtxt(local_datalst[0], delimiter=",")[:lastinforow]), (1,1792,128)))
                 y_local.append(labeldict[datapath.split("/")[-2]])
-        print(x_val[0].shape)
-
 
         if self.X_mean == None: self.X_mean = np.mean(x_train)
         if self.X_std == None: self.X_std = np.std(x_train)
@@ -159,6 +162,7 @@ class pipe_deladetect():
         ds_train = self.transform_ds(x_train,y_train)
         tf.data.Dataset.save(ds_train, os.path.join(tfds_path,"train"))
         self.srcpath = tfds_path
+        self.config["Paths"]["srcpath"] = tfds_path
 
     def transform_ds(self, X, y):
         newshape = X[0].shape
@@ -166,11 +170,10 @@ class pipe_deladetect():
             self.datashape = newshape
             self.config["General"]["datahight"]=newshape[0]
             self.config["General"]["datawidth"]=newshape[1]
-        if newshape != self.datashape:
+        if newshape[-2:] != self.datashape:
             raise Exception(f"Shape is not compatibel got shape {newshape} but shape {self.datashape} was expected")
         X = (X-self.X_mean)/self.X_std  
-        return tf.data.Dataset.from_tensor_slices((X,y))
-    
+        return tf.data.Dataset.from_tensor_slices((X,np.reshape(y,(-1,1))))
     
     def create_model(self):
         optimizer = self.config["Hyperparameters"]["optimizer"]
@@ -178,13 +181,8 @@ class pipe_deladetect():
         layers = self.config["Hyperparameters"]["layers"]        
         lr_adam = self.config["Hyperparameters"]["lr_adam"]
 
-        """         self.model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=self.image_size),  # Flatten the input image
-        tf.keras.layers.Dense(neurons, activation='relu'),  # Hidden layer with 128 neurons and ReLU activation
-        tf.keras.layers.Dense(1, activation='sigmoid')  # Output layer with 1 neuron and sigmoid activation
-        ]) """
-
-        inputs = tf.keras.layers.Input(shape=self.image_size)
+        inputsize = (self.config["General"]["datahight"], self.config["General"]["datawidth"])
+        inputs = tf.keras.layers.Input(shape=inputsize)
         x = tf.keras.layers.Flatten()(inputs)
         x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
         for i in range(layers):
@@ -202,27 +200,40 @@ class pipe_deladetect():
     
     def trainmodel(self):
         print(self.config["Hyperparameters"])
-        callbackslst=[]
         cb_earlystop= tf.keras.callbacks.EarlyStopping(
                 monitor='val_loss',
                 patience= 5,
                 restore_best_weights=True,
                 start_from_epoch=5
                 )
-        callbackslst.append(cb_earlystop)
+        self.callbacks.append(cb_earlystop)
 
-        cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
-                save_best_only= True)
-        if self.trial ==  None: callbackslst.append(cb_checkpoint)
+        if self.trial==None:
+            cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+                    self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
+                    save_best_only= True)
+            self.callbacks.append(cb_checkpoint)
+        elif self.trial != None: 
+            cb_prune =  tf.keras.callbacks.LambdaCallback(
+                on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
+            )
+            self.callbacks.append(cb_prune)
 
-        cb_lambda =  tf.keras.callbacks.LambdaCallback(
-            on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
-        )
-        if self.trial != None: callbackslst.append(cb_lambda)
+        if True:
+            self.setup_mlflow()
+            cb_mlflow =  tf.keras.callbacks.LambdaCallback(
+                            on_epoch_begin=lambda epoch, logs: mlflow.log_params(self.config["Hyperparameters"]) if epoch == 0 else None,
+                            on_epoch_end=lambda epoch, logs:mlflow.log_metrics(metrics=logs, step=epoch),
+                            on_batch_begin=None,
+                            on_batch_end=None,
+                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=str(datetime.datetime.now())),
+                            on_train_end=lambda logs: mlflow.end_run()
+                        )
+
+            self.callbacks.append(cb_mlflow)
 
         epochs = self.config["Hyperparameters"]["epochs"]
-        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=callbackslst)
+        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=self.callbacks)
 
     def pruning(self, step, logs):
         objectiveval=logs["val_accuracy"]
@@ -230,14 +241,20 @@ class pipe_deladetect():
         if self.trial.should_prune():
             raise optuna.TrialPruned()
 
+    def load_ds(self):
+        self.ds_train = tf.data.Dataset.load(path=os.path.join(self.srcpath, "train"))
+        self.ds_val = tf.data.Dataset.load(path=os.path.join(self.srcpath, "val"))
+
     def run_pipeline(self):
         self.load_setup()
         if self.config["General"]["conversionstat"] == False:
+            self.srcpath=self.config["Paths"]["srcrawpath"]
             self.get_imagepaths(fending="RFData.csv")
             self.trainvaltestsplit()
-        self.create_ds()
-        #self.create_model()
-        #self.trainmodel()
+            self.create_ds()
+        self.load_ds()
+        self.create_model()
+        self.trainmodel()
         #self.gen_confmatrix()
         self.save_config()
 

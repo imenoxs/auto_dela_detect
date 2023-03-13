@@ -4,3 +4,6 @@ src/
 .venv/
 __pycache__/
 *.sqlite3
+mlruns/
+*.db
+.ipynb_checkpoints/

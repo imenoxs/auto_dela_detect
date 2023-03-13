@@ -11,11 +11,11 @@ General:
 Hyperparameters:
   batch_size: 9
   epochs: 400
-  layers: 7
+  layers: 1
   lr_adam: 0.09109478938241923
-  neurons: 10881
+  neurons: 10
   optimizer: adam
 Paths:
   dstpath: dst/2309_pez_rf
-  oldsrc: src/2309_pez_rf
-  srcpath: dst/2309_pez_rf/traindat
+  srcpath: dst/2309_pez_rf/tfds
+  srcrawpath: src/2309_pez_rf
