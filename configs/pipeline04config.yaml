@@ -9,11 +9,11 @@ General:
   datashape: 0
   datawidth: 128
 Hyperparameters:
-  batch_size: 9
+  batch_size: 16
   epochs: 400
   layers: 1
-  lr_adam: 0.09109478938241923
-  neurons: 10
+  lr_adam: 0.05203821153284919
+  neurons: 2744
   optimizer: adam
 Paths:
   dstpath: dst/2309_pez_rf

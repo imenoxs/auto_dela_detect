@@ -23,8 +23,8 @@ class pipe_deladetect():
         self.config = None
         self.srcpath = None
         self.dstpath = None
-        self.experiment_name = "pipeline04"
-        self.configpath = f'configs/{self.experiment_name}config.yaml'
+        self.experiment_name = "Pipeline04_RF_MLP"
+        self.configpath = f'configs/pipeline04config.yaml'
         self.trial = trial
 
         self.callbacks = []
@@ -85,7 +85,7 @@ class pipe_deladetect():
         os.makedirs(path)
 
     def setup_mlflow(self):
-        mlflow.set_tracking_uri(f"sqlite:///{self.experiment_name}_mlf.db") #configures local sqlite database as logging target
+        mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
         mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
         self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
 
@@ -255,7 +255,7 @@ class pipe_deladetect():
         self.load_ds()
         self.create_model()
         self.trainmodel()
-        #self.gen_confmatrix()
+        self.gen_confmatrix()
         self.save_config()
 
     def gen_confmatrix(self):
