@@ -150,7 +150,7 @@ class pipe_deladetect():
                         if max(lst)==0 and searchlir:
                             lastinforow=i-1
                             searchlir = False
-                x_local.append(np.reshape((np.genfromtxt(local_datalst[0], delimiter=",")[:lastinforow]), (1,1792,128)))
+                x_local.append(np.genfromtxt(local_datalst[0], delimiter=",")[:lastinforow])
                 y_local.append(labeldict[datapath.split("/")[-2]])
 
         if self.X_mean == None: self.X_mean = np.mean(x_train)
@@ -233,7 +233,7 @@ class pipe_deladetect():
             self.callbacks.append(cb_mlflow)
 
         epochs = self.config["Hyperparameters"]["epochs"]
-        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=self.callbacks)
+        self.history = self.model.fit(self.ds_train, validation_data=self.ds_val, epochs=epochs, verbose=1, callbacks=self.callbacks)
 
     def pruning(self, step, logs):
         objectiveval=logs["val_accuracy"]
@@ -242,8 +242,8 @@ class pipe_deladetect():
             raise optuna.TrialPruned()
 
     def load_ds(self):
-        self.ds_train = tf.data.Dataset.load(path=os.path.join(self.srcpath, "train"))
-        self.ds_val = tf.data.Dataset.load(path=os.path.join(self.srcpath, "val"))
+        self.ds_train = tf.data.Dataset.load(path=os.path.join(self.srcpath, "train")).batch(self.config["Hyperparameters"]["batch_size"]).prefetch(1)
+        self.ds_val = tf.data.Dataset.load(path=os.path.join(self.srcpath, "val")).batch(self.config["Hyperparameters"]["batch_size"]).prefetch(1)
 
     def run_pipeline(self):
         self.load_setup()

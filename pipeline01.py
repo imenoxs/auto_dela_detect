@@ -115,7 +115,6 @@ class pipe_deladetect():
 
         self.predictions.loc[len(self.predictions)] = pred
 
-
     def convert_csv2png(self):
         convdstpath = f"{self.dstpath}/png/"
         self.get_imagepaths(fending="Data.csv")
@@ -126,8 +125,6 @@ class pipe_deladetect():
             _=plt.imsave(fname,img)
         self.srcpath = self.dstpath+"/png"
         self.get_imagepaths()
-
-
 
     def load_setup(self): # loads config from config.yaml
         with open('configs/pipelin01config.yaml', 'r') as file:
@@ -174,7 +171,6 @@ class pipe_deladetect():
         if os.path.exists(evalpath):
             self.eval = pd.read_csv(evalpath)
             self.eval
-
 
     def run_pipeline(self):
         self.load_setup()
