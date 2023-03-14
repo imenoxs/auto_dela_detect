@@ -1,6 +1,6 @@
 import optuna
 import yaml
-import pipeline01
+import pipeline01_IMG_Manual
 
 def objective(trial):
     with open("configs/pipeline01config.yaml") as f:
@@ -13,7 +13,7 @@ def objective(trial):
     with open('config.yaml', 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
 
-    pipeline = pipeline01.pipe_deladetect()
+    pipeline = pipeline01_IMG_Manual.pipe_deladetect()
     pipeline.run_pipeline()
 
     return pipeline.acc

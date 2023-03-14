@@ -1,6 +1,6 @@
 import optuna
 import yaml
-import pipeline03
+import pipeline03_IMG_MLP
 
 configpath = "configs/pipeline03config.yaml"
 best_acc = 0.0
@@ -14,12 +14,12 @@ def objective(trial):
     config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.00000001, 0.1)
     with open(configpath, 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
-    pipeline = pipeline03.pipe_deladetect(trial=trial)
+    pipeline = pipeline03_IMG_MLP.pipe_deladetect(trial=trial)
     pipeline.run_pipeline()
     if best_acc < pipeline.acc:
         pipeline.model.save(f'dst/2303_pez_dnn/model.hdf5')
     return  pipeline.acc
-study = optuna.create_study(study_name="MLP", direction='maximize', storage="sqlite:///optunapipeline3.sqlite3", load_if_exists=True)
+study = optuna.create_study(study_name="Pipeline03_IMG_MLP", direction='maximize', storage="sqlite:///optuna.sqlite3", load_if_exists=True)
 study.optimize(objective, n_trials=500)
 bestparams = study.best_params
 with open(configpath) as f:

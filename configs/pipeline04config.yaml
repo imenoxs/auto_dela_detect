@@ -6,7 +6,6 @@ Cropping:
 General:
   conversionstat: true
   datahight: 1792
-  datashape: 0
   datawidth: 128
 Hyperparameters:
   batch_size: 16

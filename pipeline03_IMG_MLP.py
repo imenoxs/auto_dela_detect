@@ -1,20 +1,16 @@
 import yaml
-import json
 import os
 import glob
 import shutil
 import pandas as pd
 import numpy as np
-import cv2
 import matplotlib.pyplot as plt
-from matplotlib import transforms
-import scipy
-import inspect
 import tensorflow as tf
 import optuna
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
-
+import mlflow
+import datetime
 
 plt.rcParams['image.cmap'] = 'gray'
 
@@ -27,6 +23,7 @@ class pipe_deladetect():
         self.dstpath = None
         self.configpath = 'configs/pipeline03config.yaml'
         self.trial = trial
+        self.experiment_name = "Pipeline03_IMG_MLP"
 
         # buffers 
         self.raw_image_list = None
@@ -104,6 +101,11 @@ class pipe_deladetect():
             shutil.rmtree(path)
         except: pass
         os.makedirs(path)
+
+    def setup_mlflow(self):
+        mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
+        mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
+        self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
 
     def trainvaltestsplit(self):
         data_dir = self.srcpath
@@ -205,6 +207,19 @@ class pipe_deladetect():
             on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
         )
         if self.trial != None: callbackslst.append(cb_lambda)
+
+        if True:
+            self.setup_mlflow()
+            cb_mlflow =  tf.keras.callbacks.LambdaCallback(
+                            on_epoch_begin=lambda epoch, logs: mlflow.log_params(self.config["Hyperparameters"]) if epoch == 0 else None,
+                            on_epoch_end=lambda epoch, logs:mlflow.log_metrics(metrics=logs, step=epoch),
+                            on_batch_begin=None,
+                            on_batch_end=None,
+                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=str(datetime.datetime.now())),
+                            on_train_end=lambda logs: mlflow.end_run()
+                        )
+            callbackslst.append(cb_mlflow)
+
 
         epochs = self.config["Hyperparameters"]["epochs"]
         self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=callbackslst)

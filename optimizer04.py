@@ -1,6 +1,6 @@
 import optuna
 import yaml
-import pipeline04
+import pipeline04_RF_MLP
 
 configpath = "configs/pipeline04config.yaml"
 best_acc = 0.0
@@ -15,7 +15,7 @@ def objective(trial):
     config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.00000001, 0.1)
     with open(configpath, 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
-    pipeline = pipeline04.pipe_deladetect(trial=trial)
+    pipeline = pipeline04_RF_MLP.pipe_deladetect(trial=trial)
     pipeline.run_pipeline()
     if best_acc < pipeline.acc:
         pipeline.model.save(f'{pipeline.srcpath}/mosdel/model.hdf5')

@@ -1,6 +1,6 @@
 import optuna
 import yaml
-import pipeline02
+import pipeline02_IMG_1LayerMLP
 
 configpath = "configs/pipeline02config.yaml"
 def objective(trial):
@@ -16,7 +16,7 @@ def objective(trial):
     config["Hyperparameters"]["from_logits"]=trial.suggest_categorical('from_logits',["true","false"])
     with open(configpath, 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
-    pipeline = pipeline02.pipe_deladetect()
+    pipeline = pipeline02_IMG_1LayerMLP.pipe_deladetect()
     pipeline.run_pipeline()
     return   pipeline.acc
 
