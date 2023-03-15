@@ -66,17 +66,21 @@ class pipe_deladetect():
         self.latestimage = img_dilation
 
     def analyse(self):
+        # analysing the image
         df = pd.DataFrame(self.latestimage)
         colsum=df.sum(axis=1) #adding up columns to have the distribution of white pixels over the rows
-        max=colsum.max()
+        max=colsum.max() #  determining maximum value for threshold later on for noise reduction
         filterval = self.config["Processing1"]["threshold"]
         moving_average = self.config["Processing1"]["movingaverage"]
+
         # some smoothing has to be applied to filter out noise
         colsum = pd.Series(colsum.rolling(moving_average).mean())
         colsum = colsum.apply(lambda x: 0 if x <= max/100*filterval or np.isnan(x) else x)
+
+        #finding peaks
         peaks, props = scipy.signal.find_peaks(colsum, height=0)
         
-        if True: #Toggles ploting of overview images
+        if True: #Toggles plotting of overview images
             aspectratio = "auto"
             fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
             bases=[]
@@ -159,6 +163,7 @@ class pipe_deladetect():
         self.predictions.to_csv(self.dstpath+"/prediction.csv")
 
     def one_cycle(self):
+        # takes one image and processes it
         self.load_new_image(self.raw_image_list[self.currentimagenr])
         self.crop_img()
         self.thr_image()
@@ -167,6 +172,7 @@ class pipe_deladetect():
         self.currentimagenr += 1
     
     def load_eval(self):
+        # evaluates prediction with real label
         evalpath = self.srcpath+"/labels.csv"
         if os.path.exists(evalpath):
             self.eval = pd.read_csv(evalpath)

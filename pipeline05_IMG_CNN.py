@@ -165,14 +165,8 @@ class pipe_deladetect():
         layers = self.config["Hyperparameters"]["layers"]        
         lr_adam = self.config["Hyperparameters"]["lr_adam"]
 
-        """         self.model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=self.image_size),  # Flatten the input image
-        tf.keras.layers.Dense(neurons, activation='relu'),  # Hidden layer with 128 neurons and ReLU activation
-        tf.keras.layers.Dense(1, activation='sigmoid')  # Output layer with 1 neuron and sigmoid activation
-        ]) """
-
         inputs = tf.keras.layers.Input(shape=self.image_size)
-        x = tf.keras.layers.Flatten()(inputs)
+        x = tf.keras.layers.Conv2D()(inputs)
         x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
         for i in range(layers):
             x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
@@ -229,6 +223,9 @@ class pipe_deladetect():
         self.trial.report(objectiveval, step)
         if self.trial.should_prune():
             raise optuna.TrialPruned()
+        try: mlflow.end_run()
+        except: pass
+        
 
     def run_pipeline(self):
         self.load_setup()
@@ -261,7 +258,6 @@ class pipe_deladetect():
         fig.savefig(self.dstpath+"/confusion")
         plt.close("all")
         print("Final val_acc: " + str(self.acc))
-
 
 if __name__ == "__main__":
     new_pipeline = pipe_deladetect()

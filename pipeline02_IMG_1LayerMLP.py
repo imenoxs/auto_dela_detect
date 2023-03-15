@@ -114,6 +114,7 @@ class pipe_deladetect():
         os.makedirs(path)
 
     def trainvaltestsplit(self):
+        # splits all data randomly into a training and test set while maintaining a 50/50 label split in each
         data_dir = self.srcpath
         split_dir = self.dstpath+"/traindat"
         val_pct = 0.2
