@@ -229,6 +229,7 @@ class pipe_deladetect():
         self.trial.report(objectiveval, step)
         if self.trial.should_prune():
             raise optuna.TrialPruned()
+        try: mlflow.end_run()
 
     def run_pipeline(self):
         self.load_setup()
