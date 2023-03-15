@@ -106,6 +106,8 @@ class pipe_deladetect():
         mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
         mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
         self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
+        try: mlflow.end_run()
+        except: pass
 
     def trainvaltestsplit(self):
         data_dir = self.srcpath
@@ -208,7 +210,7 @@ class pipe_deladetect():
         )
         if self.trial != None: callbackslst.append(cb_lambda)
 
-        if True:
+        if self.trial !=  None:
             self.setup_mlflow()
             cb_mlflow =  tf.keras.callbacks.LambdaCallback(
                             on_epoch_begin=lambda epoch, logs: mlflow.log_params(self.config["Hyperparameters"]) if epoch == 0 else None,
@@ -230,6 +232,7 @@ class pipe_deladetect():
         if self.trial.should_prune():
             raise optuna.TrialPruned()
         try: mlflow.end_run()
+        except: pass
 
     def run_pipeline(self):
         self.load_setup()
@@ -245,6 +248,7 @@ class pipe_deladetect():
     def gen_confmatrix(self):
         ds = self.ds_val
         y_pred = self.model.predict(ds)
+        self.loss, _ = self.model.evaluate(self.ds_val)
         y_pred_classes = y_pred.round().astype("int")
         y_true_classes = np.concatenate([y for x, y in ds], axis=0)
         conf_matrix = confusion_matrix(y_true_classes, y_pred.round().astype("int"))
