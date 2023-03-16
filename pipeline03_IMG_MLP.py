@@ -23,7 +23,8 @@ class pipe_deladetect():
         self.dstpath = None
         self.configpath = 'configs/pipeline03config.yaml'
         self.trial = trial
-        self.experiment_name = "Pipeline03_IMG_MLP"
+        self.experiment_name = "Pipeline03_IMG_MLP_minimize2"
+        self.callbackslst=[]
 
         # buffers 
         self.raw_image_list = None
@@ -101,13 +102,6 @@ class pipe_deladetect():
             shutil.rmtree(path)
         except: pass
         os.makedirs(path)
-
-    def setup_mlflow(self):
-        mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
-        mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
-        self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
-        try: mlflow.end_run()
-        except: pass
 
     def trainvaltestsplit(self):
         data_dir = self.srcpath
@@ -191,48 +185,34 @@ class pipe_deladetect():
     
     def trainmodel(self):
         print(self.config["Hyperparameters"])
-        callbackslst=[]
         cb_earlystop= tf.keras.callbacks.EarlyStopping(
                 monitor='val_loss',
                 patience= 5,
                 restore_best_weights=True,
                 start_from_epoch=5
                 )
-        callbackslst.append(cb_earlystop)
+        self.callbackslst.append(cb_earlystop)
 
         cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
                 self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
                 save_best_only= True)
-        if self.trial ==  None: callbackslst.append(cb_checkpoint)
+        if self.trial ==  None: self.callbackslst.append(cb_checkpoint)
 
         cb_lambda =  tf.keras.callbacks.LambdaCallback(
             on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
         )
-        if self.trial != None: callbackslst.append(cb_lambda)
-
-        if self.trial !=  None:
-            self.setup_mlflow()
-            cb_mlflow =  tf.keras.callbacks.LambdaCallback(
-                            on_epoch_begin=lambda epoch, logs: mlflow.log_params(self.config["Hyperparameters"]) if epoch == 0 else None,
-                            on_epoch_end=lambda epoch, logs:mlflow.log_metrics(metrics=logs, step=epoch),
-                            on_batch_begin=None,
-                            on_batch_end=None,
-                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=str(datetime.datetime.now())),
-                            on_train_end=lambda logs: mlflow.end_run()
-                        )
-            callbackslst.append(cb_mlflow)
-
+        if self.trial != None: self.callbackslst.append(cb_lambda)
 
         epochs = self.config["Hyperparameters"]["epochs"]
-        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=callbackslst)
+        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=self.callbackslst)
 
     def pruning(self, step, logs):
-        objectiveval=logs["val_accuracy"]
+        objectiveval=logs["val_loss"]
         self.trial.report(objectiveval, step)
         if self.trial.should_prune():
             raise optuna.TrialPruned()
-        try: mlflow.end_run()
-        except: pass
+        else: mlflow.set_tag("pruned",False)
+            
 
     def run_pipeline(self):
         self.load_setup()
@@ -248,11 +228,10 @@ class pipe_deladetect():
     def gen_confmatrix(self):
         ds = self.ds_val
         y_pred = self.model.predict(ds)
-        self.loss, _ = self.model.evaluate(self.ds_val)
+        self.loss, self.acc = self.model.evaluate(self.ds_val)
         y_pred_classes = y_pred.round().astype("int")
         y_true_classes = np.concatenate([y for x, y in ds], axis=0)
         conf_matrix = confusion_matrix(y_true_classes, y_pred.round().astype("int"))
-        self.acc= (conf_matrix[1][1]+conf_matrix[0][0])/len(y_pred_classes)
 
         fig, ax = plt.subplots(figsize=(7.5, 7.5))
         ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)

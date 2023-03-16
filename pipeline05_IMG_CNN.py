@@ -223,7 +223,10 @@ class pipe_deladetect():
         self.trial.report(objectiveval, step)
         if self.trial.should_prune():
             raise optuna.TrialPruned()
-        try: mlflow.end_run()
+        try: 
+            mlflow.set_tag("pruned")
+            mlflow.end_run()
+
         except: pass
         
 

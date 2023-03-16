@@ -226,7 +226,7 @@ class pipe_deladetect():
                             on_epoch_end=lambda epoch, logs:mlflow.log_metrics(metrics=logs, step=epoch),
                             on_batch_begin=None,
                             on_batch_end=None,
-                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=str(datetime.datetime.now())),
+                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')),
                             on_train_end=lambda logs: mlflow.end_run()
                         )
             callbacks.append(cb_mlflow)
