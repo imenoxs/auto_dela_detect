@@ -7,10 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import optuna
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix ,roc_auc_score, roc_curve, precision_recall_curve, det_curve
 from sklearn.model_selection import train_test_split
-import mlflow
-import datetime
 
 plt.rcParams['image.cmap'] = 'gray'
 
@@ -23,7 +21,6 @@ class pipe_deladetect():
         self.dstpath = None
         self.configpath = 'configs/pipeline03config.yaml'
         self.trial = trial
-        self.experiment_name = "Pipeline03_IMG_MLP_minimize2"
         self.callbackslst=[]
 
         # buffers 
@@ -35,6 +32,7 @@ class pipe_deladetect():
         self.imgcrop = None
         # results
         self.eval = None
+        self.finalmetrics = {}
             
     def crop_img(self):
         bottom = self.config["Cropping"]["bottom"]
@@ -198,10 +196,10 @@ class pipe_deladetect():
                 save_best_only= True)
         if self.trial ==  None: self.callbackslst.append(cb_checkpoint)
 
-        cb_lambda =  tf.keras.callbacks.LambdaCallback(
+        optuna_lambda =  tf.keras.callbacks.LambdaCallback(
             on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
         )
-        if self.trial != None: self.callbackslst.append(cb_lambda)
+        if self.trial != None: self.callbackslst.append(optuna_lambda)
 
         epochs = self.config["Hyperparameters"]["epochs"]
         self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=self.callbackslst)
@@ -210,9 +208,7 @@ class pipe_deladetect():
         objectiveval=logs["val_loss"]
         self.trial.report(objectiveval, step)
         if self.trial.should_prune():
-            raise optuna.TrialPruned()
-        else: mlflow.set_tag("pruned",False)
-            
+            raise optuna.TrialPruned()            
 
     def run_pipeline(self):
         self.load_setup()
@@ -223,16 +219,19 @@ class pipe_deladetect():
         self.create_ds()
         self.create_model()
         self.trainmodel()
-        self.gen_confmatrix()
+        self.performanc_analyser()
 
-    def gen_confmatrix(self):
+    def performanc_analyser(self):
         ds = self.ds_val
-        y_pred = self.model.predict(ds)
+
         self.loss, self.acc = self.model.evaluate(self.ds_val)
+
+        y_pred = self.model.predict(ds)
         y_pred_classes = y_pred.round().astype("int")
         y_true_classes = np.concatenate([y for x, y in ds], axis=0)
-        conf_matrix = confusion_matrix(y_true_classes, y_pred.round().astype("int"))
 
+        # ge condusion matrix
+        conf_matrix = confusion_matrix(y_true_classes, y_pred.round().astype("int"))
         fig, ax = plt.subplots(figsize=(7.5, 7.5))
         ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
         for i in range(len(conf_matrix)):
@@ -243,7 +242,53 @@ class pipe_deladetect():
         plt.title(f'Confusion Matrix', fontsize=18)
         plt.figtext(0, 0, f'Dataset Size: {len(y_pred_classes)}\nSample Split: {sum(conf_matrix[0]/sum(conf_matrix[1]))}\nAcc: {self.acc}\nOptimizer: {self.config["Hyperparameters"]["optimizer"]}')
         fig.savefig(self.dstpath+"/confusion")
+        plt.close("all")        
+        
+        # calculating precision, recall and f1 score
+        tn, fp, fn, tp = conf_matrix.ravel()
+        self.precision=tp/(tp+fp)
+        self.recall=tp/(tp+fn)
+        self.f1=tp/(tp+(fn+fp)/2)
+
+        #ploting precision recall curve
+        precisions, recalls, thresholds = precision_recall_curve(y_true_classes,y_pred)
+        plt.plot(recalls, precisions) 
+        plt.xlabel('Recall', fontsize=18)
+        plt.ylabel('Precision', fontsize=18)
+        plt.title(f'Precision-Recall (PR) Curve', fontsize=18)
+        plt.savefig(self.dstpath+"/prereccurve")
         plt.close("all")
+
+        # plotting roc curve
+        fpr, tpr, thresholds = roc_curve(y_true_classes,y_pred)
+        plt.plot(fpr, tpr) 
+        plt.xlabel('False Positiv Rate', fontsize=18)
+        plt.ylabel('True Positive Rate', fontsize=18)
+        plt.title(f'Receiver Operating Characteristic (ROC) Curve', fontsize=18)
+        plt.savefig(self.dstpath+"/roccurve")
+        plt.close("all")  
+
+        # plotting det curve
+        fpr, fnr, thresholds = det_curve(y_true_classes, y_pred)
+        plt.plot(fpr, fnr) 
+        plt.xlabel('False Positiv Rate', fontsize=18)
+        plt.ylabel('False Negative Rate', fontsize=18)
+        plt.title(f'Detection Error Tradeoff (DET) Curve', fontsize=18)
+        plt.ylim([0,1])
+        plt.xlim([0,1])
+        plt.savefig(self.dstpath+"/detcurve")
+        plt.close("all")
+
+        self.finalmetrics = {
+            "final_loss": self.loss,
+            "final_acc": self.acc,
+            "tp": tp,
+            "fp": fp,
+            "tn": tn,
+            "fn": fn,
+            "f1": self.f1,
+            "roc_auc": roc_auc_score(y_true=y_true_classes, y_score=y_pred)
+        }
         print("Final val_acc: " + str(self.acc))
 
 

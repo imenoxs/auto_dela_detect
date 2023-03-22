@@ -1,0 +1,19 @@
+Contour1:
+  nrconts: 5
+Cropping:
+  bottom: 76
+  left: 0
+  right: 2
+  top: 0
+Erodil:
+  dil_iters: 15
+  ero_iters: 7
+  kernel: 1
+Paths:
+  dstpath: ./dst/2303_pez500
+  srcpath: ./src/2303_pez500/imgdat
+Processing1:
+  movingaverage: 5
+  threshold: 28
+Thresholding:
+  thrval: 109

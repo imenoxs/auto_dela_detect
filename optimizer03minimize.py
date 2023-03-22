@@ -6,7 +6,7 @@ import tensorflow as tf
 import datetime
 
 configpath = "configs/pipeline03config.yaml"
-experiment_name= "Pipeline03_IMG_MLP_MinimizeRun1"
+experiment_name= "Pipeline03_IMG_MLP_MinimizeRun3"
 
 best_loss = 0.0
 def objective(trial):
@@ -26,12 +26,13 @@ def objective(trial):
                     on_train_end=None
                 )
 
-    with mlflow.start_run(experiment_id=experiment_id, run_name=datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')):
+    with mlflow.start_run(experiment_id=experiment_id, run_name=f"Trial {trial.number}"):
         mlflow.set_tag("pruned",True)
-        config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 64, 128*57*3/2)
+        config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 64, 128*57*2/3)
         config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 8)
         config["Hyperparameters"]["batch_size"]=trial.suggest_int('batch_size', 2, 128)
         config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.000000001, 0.1)
+        config["Hyperparameters"]["epsilon"]= 0
         with open(configpath, 'w') as outfile:
             yaml.dump(config, outfile, default_flow_style=False)
         mlflow.log_params(config["Hyperparameters"])
@@ -41,9 +42,16 @@ def objective(trial):
         if best_loss > pipeline.loss:
             best_loss = pipeline.loss
             pipeline.model.save(f'dst/2303_pez_dnn/model.hdf5')
-        mlflow.log_metrics({"final_val_acc": pipeline.acc, "final_val_loss": pipeline.loss})
+        mlflow.log_metrics(pipeline.finalmetrics)
         mlflow.log_artifact("/Users/tilmanseesselberg/Nextcloud2/WIP/Bachelorarbeit/Automation/dst/2303_pez_dnn/confusion.png")
-        return  pipeline.loss
+        mlflow.log_artifact("/Users/tilmanseesselberg/Nextcloud2/WIP/Bachelorarbeit/Automation/dst/2303_pez_dnn/roccurve.png")
+        mlflow.log_artifact("/Users/tilmanseesselberg/Nextcloud2/WIP/Bachelorarbeit/Automation/dst/2303_pez_dnn/prereccurve.png")
+        mlflow.log_artifact("/Users/tilmanseesselberg/Nextcloud2/WIP/Bachelorarbeit/Automation/dst/2303_pez_dnn/detcurve.png")
+        if trial.should_prune():
+            mlflow.set_tag("pruned",True)
+        else:
+            mlflow.set_tag("pruned",False)
+        return  pipeline.finalmetrics["final_loss"]
 study = optuna.create_study(study_name=experiment_name, direction='minimize', storage="sqlite:///optuna.db", load_if_exists=True)
 study.optimize(objective, n_trials=500)
 bestparams = study.best_params
