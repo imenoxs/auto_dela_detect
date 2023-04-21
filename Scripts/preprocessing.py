@@ -1,13 +1,14 @@
 import dsutils
 import os
+import glob
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def main(dstpath, labels_df,cut_vals, fname_schema):
+def main(dstpath, labels_df,cut_vals):
     convert_csv2png(dstpath=dstpath,labels_df=labels_df, cut_vals=cut_vals)
 
 def convert_csv2png(dstpath, labels_df, cut_vals):
-    convdstpath = f"{dstpath}/png/" #destination to save converted images
+    convdstpath = f"{dstpath}" #destination to save converted images
     dsutils.clean_dir(convdstpath) #if not exists creates destination path or else deletes everything in it
     for index, row in labels_df.iterrows():
         imgpath = row["paths"]
@@ -29,13 +30,19 @@ def crop_img(img, cut_vals):
     croppedimg = img[cut_vals["top"]:hight-cut_vals["bottom"], cut_vals["left"]:width-cut_vals["right"]]
     return croppedimg
 
+def gen_labelescsv(dstpath):
+    files=glob.glob(os.path.join(dstpath,"*","cdata*.png"), recursive=True)
+    files.sort()
+    files_df=pd.DataFrame(files, index=[x+1 for x in range(len(files))])
+    files_df.columns=["paths"]
+    files_df["labels"]=files_df.paths.apply(lambda x: os.path.split(os.path.split(x)[0])[1])
+    files_df.to_csv(os.path.join(dstpath,"labels.csv"))
 
 if __name__ == "__main__":
     configpath = os.path.join("configs","pipeline06config.yaml")
     labels_df_path = os.path.join("src","2303_pez500","2303_pez500_labels.csv")
-    dstpath = os.path.join("dst","test")
+    dstpath = os.path.join("dst","2303_pez500")
     srcpath = os.path.join("src","2303_pez500")
-    fname_schema="cdata*.csv"
     cut_vals={"bottom":70,
             "left":0,
             "top":0,
@@ -45,4 +52,5 @@ if __name__ == "__main__":
     labels_df = pd.read_csv(labels_df_path, index_col=0)
     #config = dsutils.load_setup(configpath=os.path.join(cwd,configpath))
     
-    main(dstpath=dstpath, labels_df=labels_df, fname_schema=fname_schema, cut_vals=cut_vals)
+    main(dstpath=dstpath, labels_df=labels_df, cut_vals=cut_vals)
+    gen_labelescsv(dstpath)

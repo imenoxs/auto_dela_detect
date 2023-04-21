@@ -1,6 +1,6 @@
 Cropping:
-  bottom: 60
-  left: 0
+  bottom: 70
+  left: 2
   right: 0
   top: 0
 Erodil:
@@ -8,8 +8,8 @@ Erodil:
   ero_iters: 2
   kernel: 1
 Paths:
-  dstpath: ./dst/2302_pez
-  srcpath: ./src/2302_pez
+  dstpath: ./dst/2303_pez500test
+  srcpath: ./dst/2303_pez500
 Processing1:
   movingaverage: 5
   threshold: 0

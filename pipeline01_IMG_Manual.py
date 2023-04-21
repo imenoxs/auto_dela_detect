@@ -24,29 +24,20 @@ class pipe_deladetect():
         self.status = {}
 
         # buffers 
-        self.raw_image_list = None
+        self.train_img_paths = None
         self.currentimagenr = 0
         self.latestimage = None
         self.imgrgb = None
         self.imgcrop = None
         # results
+        self.plottrigger=True
         self.eval = None
         self.predictions = pd.DataFrame(columns=["filename","peaks","prediction", "criteria"])
 
     def load_new_image(self, imgpath):
-        latestimage = cv2.imread(imgpath)
+        latestimage = self.imgcrop = cv2.imread(imgpath)
         self.latestimage = cv2.cvtColor(latestimage, cv2.COLOR_BGR2GRAY)
         self.imgrgb = cv2.cvtColor(latestimage, cv2.COLOR_BGR2RGB)
-        
-    def crop_img(self):
-        bottom = self.config["Cropping"]["bottom"]
-        left = self.config["Cropping"]["left"]
-        right = self.config["Cropping"]["right"]
-        top = self.config["Cropping"]["top"]
-        hight,width = self.latestimage.shape
-
-        croppedimg = self.latestimage[top:hight-bottom, left:width-right]
-        self.latestimage = self.imgcrop = croppedimg
 
     def thr_image(self):
         thrval = self.config["Thresholding"]["thrval"]
@@ -80,7 +71,8 @@ class pipe_deladetect():
         #finding peaks
         peaks, props = scipy.signal.find_peaks(colsum, height=0)
         
-        if True: #Toggles plotting of overview images
+        
+        if self.plottrigger: #Toggles plotting of overview images
             aspectratio = "auto"
             fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
             bases=[]
@@ -90,7 +82,7 @@ class pipe_deladetect():
             axs[0].imshow(self.imgcrop, aspect = aspectratio)
             axs[0].title.set_text(f"Original Image")
             axs[1].imshow(self.latestimage, aspect = aspectratio)
-            axs[1].title.set_text(f"B/W Image")
+            axs[1].title.set_text(f"Threshold Image")
             
             axs[2].plot(colsum,transform= rot + bases[2])
             axs[2].title.set_text(f"Accum Pixel Val\nHightThrPerc={filterval}%")
@@ -103,43 +95,27 @@ class pipe_deladetect():
                 ax.tick_params(labelrotation=45)
             # plt.show()
             savedir = self.dstpath+"/processed"
-            fname= self.gen_filename(savedir,"overview")
+            fname= os.path.join(savedir,os.path.split(self.train_img_paths[self.currentimagenr])[1])
             fig.savefig(fname)
             plt.close('all')
+            self.plottrigger = False
 
         predictfunc = lambda peaks: True if len(peaks)>2 else False
         funcString = str(inspect.getsourcelines(predictfunc)[0])
         funcString = funcString.strip("['\\n']").split(" = ")[1]
         prediction = predictfunc(peaks)
 
-        pred = {"filename": self.raw_image_list[self.currentimagenr],
+        pred = {"filename": self.train_img_paths[self.currentimagenr],
                 "peaks": len(peaks),
                 "prediction": prediction,
                 "criteria": funcString}
 
         self.predictions.loc[len(self.predictions)] = pred
 
-    def convert_csv2png(self):
-        convdstpath = f"{self.dstpath}/png/"
-        self.get_imagepaths(fending="Data.csv")
-        self.clean_dir(convdstpath)
-        for imgpath in self.raw_image_list:
-            img=pd.read_csv(imgpath).to_numpy()
-            fname= self.gen_filename(convdstpath,"ImagePData")
-            _=plt.imsave(fname,img)
-        self.srcpath = self.dstpath+"/png"
-        self.get_imagepaths()
-
     def load_setup(self): # loads config from config.yaml
         with open('configs/pipelin01config.yaml', 'r') as file:
             self.config = yaml.safe_load(file)
-        self.srcpath = self.config["Paths"]["srcpath"]
         self.dstpath = self.config["Paths"]["dstpath"]
-    
-    def get_imagepaths(self,fending=".png"): # loads source images
-        image_list = glob.glob(f"{self.srcpath}/*{fending}", recursive=True)
-        image_list.sort()
-        self.raw_image_list = image_list
     
     def gen_filename(self, path2folder, filename):
         i = 1
@@ -164,8 +140,7 @@ class pipe_deladetect():
 
     def one_cycle(self):
         # takes one image and processes it
-        self.load_new_image(self.raw_image_list[self.currentimagenr])
-        self.crop_img()
+        self.load_new_image(self.train_img_paths[self.currentimagenr])
         self.thr_image()
         self.ero_dil()
         self.analyse()
@@ -173,33 +148,34 @@ class pipe_deladetect():
     
     def load_eval(self):
         # evaluates prediction with real label
-        evalpath = self.srcpath+"/labels.csv"
+        evalpath = self.srcpath+"labels.csv"
         if os.path.exists(evalpath):
             self.eval = pd.read_csv(evalpath)
-            self.eval
 
     def run_pipeline(self):
         self.load_setup()
-        self.load_eval()
-        self.get_imagepaths()
-        self.convert_csv2png()
+        self.labels_df = pd.read_csv(os.path.join(self.config["Paths"]["srcpath"],"labels.csv"),index_col=0)
+        self.eval_df = self.labels_df.sample(n=int(len(self.labels_df)*0.2), random_state=230421)
+        self.train_df = self.labels_df.drop(self.eval_df.index)
+        self.train_img_paths = list(self.train_df.paths)
+        self.eval_img_paths= list(self.eval_df.paths)
         self.clean_dir(self.dstpath+"/processed")
         try:
             while True: 
                 self.one_cycle()
         except: pass
-        self.save_preds()
-        
-        if self.eval.empty != None:
-            self.gen_confmatrix()
-        #self.show_image()
-        
+
+        self.predictions.to_csv(self.dstpath+"/prediction.csv")
+
     def gen_confmatrix(self):
         preds= self.predictions[["filename","prediction"]]
-        df=self.eval
-        counttrue = len(df[df["label"]==1])
-        countfalse = len(df[df["label"]==0])
-        df["preds"]=preds["prediction"].apply(lambda x: 1 if x == True else 0)
+
+        predfilename = list(preds.filename)
+        eval = self.labels_df[self.labels_df.paths.apply(lambda x: os.path.split(x)[1])]
+        #counttrue = len(df[df["label"]==1])
+        #countfalse = len(df[df["label"]==0])
+        
+        #df["preds"]=preds["prediction"].apply(lambda x: 1 if x == True else 0)
 
         matrix = {
             0: {
