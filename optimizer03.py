@@ -6,7 +6,7 @@ import tensorflow as tf
 import datetime
 
 configpath = "configs/pipeline03config.yaml"
-experiment_name= "Pipeline03_IMG_MLP_MaximizeRun6"
+experiment_name= "Pipeline03_IMG_MLP_MaximizeRun7DELETE"
 
 best_loss = 0.0
 def objective(trial):

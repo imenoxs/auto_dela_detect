@@ -1,267 +1,66 @@
-import yaml
-import os
-import glob
-import shutil
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import tensorflow as tf
-import optuna
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split
-import mlflow
-import datetime
-
-plt.rcParams['image.cmap'] = 'gray'
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+import Scripts.dsutils as dsutils
 
 
-class pipe_deladetect():
-    def __init__(self, trial=None):
-        # stores preset parameters
-        self.config = None
-        self.srcpath = None
-        self.dstpath = None
-        self.configpath = 'configs/pipeline03config.yaml'
-        self.trial = trial
-        self.experiment_name = "Pipeline03_IMG_MLP"
+# def loade_ds():
+#     train_images, test_images = train_images / 255.0, test_images / 255.0
 
-        # buffers 
-        self.raw_image_list = None
-        self.currentimagenr = 0
-        self.latestimage = None
-        self.latestlabel = None
-        self.imgrgb = None
-        self.imgcrop = None
-        # results
-        self.eval = None
-            
-    def crop_img(self):
-        bottom = self.config["Cropping"]["bottom"]
-        left = self.config["Cropping"]["left"]
-        right = self.config["Cropping"]["right"]
-        top = self.config["Cropping"]["top"]
-        hight,width = self.latestimage.shape
-        self.hight=hight-bottom-top
-        self.width=width-left-right
+#     (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
 
-        croppedimg = self.latestimage[top:hight-bottom, left:width-right]
-        self.latestimage = self.imgcrop = croppedimg
+#     # Normalize pixel values to be between 0 and 1
+#     train_images, test_images = train_images / 255.0, test_images / 255.0
 
-    def convert_csv2png(self):
-        convdstpath = f"{self.dstpath}/png/"
-        self.get_imagepaths(fending="Data.csv")
-        self.clean_dir(convdstpath)
-        recursive = True
-        for imgpath in self.raw_image_list:
-            img=pd.read_csv(imgpath).to_numpy()
-            self.latestimage=img
-            self.crop_img()
-            if recursive:
-                folders=imgpath.split("/")
-                for folder in self.srcpath.split("/"):
-                    folders.remove(folder)
-                folders.pop()
-                if folders != []:
-                    savepath = convdstpath + "/".join(folders)
-                else: 
-                    savepath = convdstpath
-                    recursive = False
-            fname= self.gen_filename(savepath,"ImagePData")
-            if not os.path.exists("/".join(fname.split("/")[:-1])) :
-                self.clean_dir("/".join(fname.split("/")[:-1]))
-            _=plt.imsave(fname,self.latestimage)
-        self.srcpath = self.dstpath+"/png"
-        self.get_imagepaths()
+#     class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+#                 'dog', 'frog', 'horse', 'ship', 'truck']
+#     return (train_images, train_labels), (test_images, test_labels)
+print(tf.__version__)
 
-    def load_setup(self): # loads config from config.yaml
-        with open(self.configpath, 'r') as file:
-            self.config = yaml.safe_load(file)
-        self.srcpath = self.config["Paths"]["srcpath"]
-        self.dstpath = self.config["Paths"]["dstpath"]
-    
-    def get_imagepaths(self,fending=".png", rootpath = None): # loads source images
-        if rootpath == None: rootpath = self.srcpath
-        image_list = glob.glob(f"{rootpath}/*/*{fending}", recursive=True)
-        if image_list == []:
-            image_list = glob.glob(f"{rootpath}/*{fending}", recursive=True)
-        image_list.sort()
-        self.raw_image_list = image_list
-        return image_list
-    
-    def gen_filename(self, path2folder, filename):
-        i = 1
-        try:
-            while os.path.exists(f"{path2folder}/{filename}{i:03d}.png"):
-                i += 1
-        except: pass
-        return f"{path2folder}/{filename}{i:03d}.png"
-
-    def clean_dir(self,path):
-        try:
-            shutil.rmtree(path)
-        except: pass
-        os.makedirs(path)
-
-    def setup_mlflow(self):
-        mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
-        mlflow.set_experiment(experiment_name=self.experiment_name) # creating experiment under which future runs will get logged
-        self.experiment_id=mlflow.get_experiment_by_name(self.experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
-
-    def trainvaltestsplit(self):
-        data_dir = self.srcpath
-        split_dir = self.dstpath+"/traindat"
-        val_pct = 0.3
-        class_dirs = os.listdir(data_dir)
-        for class_dir in class_dirs:
-            class_path = os.path.join(data_dir, class_dir)
-            image_filenames = os.listdir(class_path)
-            image_paths = [os.path.join(class_path, fn) for fn in image_filenames]
-            train_paths, val_paths = train_test_split(image_paths, test_size=val_pct, random_state=23030712)
-            train_dir = os.path.join(split_dir, 'train', class_dir)
-            val_dir = os.path.join(split_dir, 'val', class_dir)
-            self.clean_dir(train_dir)
-            self.clean_dir(val_dir)
-            for path in train_paths:
-                shutil.copy(path, train_dir)
-            for path in val_paths:
-                shutil.copy(path, val_dir)
-            self.srcpath = split_dir
-        self.config["General"]["conversionstat"] = True
-        self.config["Paths"]["srcpath"] = split_dir
-        with open(self.configpath, 'w') as outfile:
-            yaml.dump(self.config, outfile, default_flow_style=False)
-
-    def create_ds(self):
-        # Set the image dimensions
-        with tf.keras.preprocessing.image.load_img(self.get_imagepaths(rootpath="dst/2303_pez_dnn/traindat/train")[0]) as img:
-            self.image_size = (img.height, img.width)
-        # Create the datasets for the training, validation, and test sets
-        batchsize = self.config["Hyperparameters"]["batch_size"]
-        self.classnames=["normal","delam"]
-
+def load_ds(srcpath, classnames, config):
         ds_train=tf.keras.utils.image_dataset_from_directory(
-        self.srcpath+"/train/",
+        srcpath+"/train/",
         color_mode = "grayscale",
-        class_names=self.classnames,
+        class_names= classnames,
         labels= "inferred",
         seed=230305,
-        image_size=self.image_size,
+        image_size= image_size,
         batch_size=batchsize)
-        self.ds_train = ds_train.map(lambda x, y: (x / 255.0, y))
+        ds_train = ds_train.map(lambda x, y: (x / 255.0, y))
 
         ds_val =tf.keras.utils.image_dataset_from_directory(
-        self.srcpath+"/val/",
+        srcpath+"/val/",
         color_mode = "grayscale",
-        class_names=self.classnames,
+        class_names= classnames,
         labels= "inferred",
-        image_size=self.image_size,
+        image_size= image_size,
         batch_size=batchsize,
         shuffle=False)
-        self.ds_val = ds_val.map(lambda x, y: (x / 255.0, y))
+        ds_val = ds_val.map(lambda x, y: (x / 255.0, y))
 
-    def create_model(self):
-        optimizer = self.config["Hyperparameters"]["optimizer"]
-        neurons = self.config["Hyperparameters"]["neurons"]
-        layers = self.config["Hyperparameters"]["layers"]        
-        lr_adam = self.config["Hyperparameters"]["lr_adam"]
+def create_model():
+    model = models.Sequential()
+    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(10))
+    print(model.summary())
+    return model
 
-        inputs = tf.keras.layers.Input(shape=self.image_size)
-        x = tf.keras.layers.Conv2D()(inputs)
-        x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
-        for i in range(layers):
-            x =  tf.keras.layers.Dense(neurons, activation='relu')(x)
-        outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
-        self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
+def train(model, train_images, train_labels, test_images, test_labels):
+    model.compile(optimizer='adam',
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                metrics=['accuracy'])
+    history = model.fit(train_images, train_labels, epochs=10, 
+                        validation_data=(test_images, test_labels))
 
-        lossfunctsdict={
-            "binary_crossentropy": tf.keras.losses.BinaryCrossentropy(from_logits=False),
-        }
-        optimizerdict={
-            "adam" : tf.keras.optimizers.Adam(learning_rate=lr_adam),
-            }
-        self.model.compile(optimizer=optimizerdict[optimizer], loss=lossfunctsdict["binary_crossentropy"], metrics=['accuracy'])
-    
-    def trainmodel(self):
-        print(self.config["Hyperparameters"])
-        callbackslst=[]
-        cb_earlystop= tf.keras.callbacks.EarlyStopping(
-                monitor='val_loss',
-                patience= 5,
-                restore_best_weights=True,
-                start_from_epoch=5
-                )
-        callbackslst.append(cb_earlystop)
-
-        cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
-                save_best_only= True)
-        if self.trial ==  None: callbackslst.append(cb_checkpoint)
-
-        cb_lambda =  tf.keras.callbacks.LambdaCallback(
-            on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
-        )
-        if self.trial != None: callbackslst.append(cb_lambda)
-
-        if True:
-            self.setup_mlflow()
-            cb_mlflow =  tf.keras.callbacks.LambdaCallback(
-                            on_epoch_begin=lambda epoch, logs: mlflow.log_params(self.config["Hyperparameters"]) if epoch == 0 else None,
-                            on_epoch_end=lambda epoch, logs:mlflow.log_metrics(metrics=logs, step=epoch),
-                            on_batch_begin=None,
-                            on_batch_end=None,
-                            on_train_begin=lambda logs: mlflow.start_run(experiment_id=self.experiment_id, run_name=str(datetime.datetime.now())),
-                            on_train_end=lambda logs: mlflow.end_run()
-                        )
-            callbackslst.append(cb_mlflow)
-
-
-        epochs = self.config["Hyperparameters"]["epochs"]
-        self.history = self.model.fit(self.ds_train,validation_data=self.ds_val ,epochs = epochs, verbose = 1, callbacks=callbackslst)
-
-    def pruning(self, step, logs):
-        objectiveval=logs["val_accuracy"]
-        self.trial.report(objectiveval, step)
-        if self.trial.should_prune():
-            raise optuna.TrialPruned()
-        try: 
-            mlflow.set_tag("pruned")
-            mlflow.end_run()
-
-        except: pass
-        
-
-    def run_pipeline(self):
-        self.load_setup()
-        if self.config["General"]["conversionstat"] == False:
-            self.get_imagepaths(fending="Data.csv")
-            self.convert_csv2png()
-            self.trainvaltestsplit()
-        self.create_ds()
-        self.create_model()
-        self.trainmodel()
-        self.gen_confmatrix()
-
-    def gen_confmatrix(self):
-        ds = self.ds_val
-        y_pred = self.model.predict(ds)
-        y_pred_classes = y_pred.round().astype("int")
-        y_true_classes = np.concatenate([y for x, y in ds], axis=0)
-        conf_matrix = confusion_matrix(y_true_classes, y_pred.round().astype("int"))
-        self.acc= (conf_matrix[1][1]+conf_matrix[0][0])/len(y_pred_classes)
-
-        fig, ax = plt.subplots(figsize=(7.5, 7.5))
-        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
-        for i in range(len(conf_matrix)):
-            for j in range(len(conf_matrix[1])):
-                ax.text(x=j, y=i,s=conf_matrix[i][j], va='center', ha='center', size='xx-large')
-        plt.xlabel('Predictions', fontsize=18)
-        plt.ylabel('Actuals', fontsize=18)
-        plt.title(f'Confusion Matrix', fontsize=18)
-        plt.figtext(0, 0, f'Dataset Size: {len(y_pred_classes)}\nSample Split: {sum(conf_matrix[0]/sum(conf_matrix[1]))}\nAcc: {self.acc}\nOptimizer: {self.config["Hyperparameters"]["optimizer"]}')
-        fig.savefig(self.dstpath+"/confusion")
-        plt.close("all")
-        print("Final val_acc: " + str(self.acc))
+def evaluate(model, test_images, test_labels):
+    test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+    print(test_acc)
 
 if __name__ == "__main__":
-    new_pipeline = pipe_deladetect()
-    new_pipeline.run_pipeline()
+    load_ds()

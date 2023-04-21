@@ -4,7 +4,7 @@ Cropping:
   right: 0
   top: 0
 General:
-  conversionstat: true
+  conversionstat: false
 Hyperparameters:
   batch_size: 37
   epochs: 400
@@ -16,4 +16,4 @@ Hyperparameters:
 Paths:
   dstpath: dst/2303_pez_dnn
   oldsrc: src/2302_pez_tfds
-  srcpath: dst/2303_pez_dnn/traindat
+  srcpath: src/2302_pez_tfds
