@@ -10,11 +10,14 @@ import Scripts.dsutils as dsutils
 configpath = "configs/pipeline05config.yaml"
 experiment_name= "pipeline05_IMG_CNN_MaximizeRun1"
 
-best_loss = 0.0
+best_loss = None
+best_acc = None
 def objective(trial):
     global experiment_name
     global best_loss
+    global best_acc
     cb_lst = []
+    final_metrics = None
     with open(configpath) as f:
         config=yaml.safe_load(f)
     mlflow.set_tracking_uri(f"sqlite:///MLFlow.db") #configures local sqlite database as logging target
@@ -66,27 +69,36 @@ def objective(trial):
             model=pipe.create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization)
             history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
             final_metrics=pipe.analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath)
+            if best_loss == None or best_loss > final_metrics["final_loss"] or best_acc< final_metrics["final_acc"]:
+                best_loss = final_metrics["final_loss"]
+                best_acc = final_metrics["final_acc"]
+                model.save(os.path.join(srcpath,"temp","model.hdf5"))
+                mlflow.set_tag("model",True)
+            mlflow.log_metrics(final_metrics)
         except Exception as e: 
-            print("*************************************")
-            print("CRASHED")
-            print("*************************************")
-            with open(os.path.join(srcpath,"temp","exception.txt"), "w") as f:
-                f.write(str(e))
-            mlflow.set_tag("crashed",True)
-            mlflow.log_artifacts(os.path.join(srcpath,"temp"))            
-            raise optuna.TrialPruned()
 
-        if best_loss > final_metrics["final_loss"]:
-            best_loss = final_metrics["final_loss"]
-            model.save(os.path.join(srcpath,"temp","model.hdf5"))
+            if not trial.should_prune():
+                print("*************************************")
+                print("CRASHED")
+                print("*************************************")
+                with open(os.path.join(srcpath,"temp","exception.txt"), "w") as f:
+                    f.write(str(e))
+                mlflow.set_tag("crashed",True)
+                mlflow.log_artifacts(os.path.join(srcpath,"temp"))            
+                raise optuna.TrialPruned()
 
-        mlflow.log_metrics(final_metrics)
+
+
+        
         mlflow.log_artifacts(os.path.join(srcpath,"temp"))
         if trial.should_prune():
             mlflow.set_tag("pruned",True)
         else:
             mlflow.set_tag("pruned",False)
-        return  final_metrics["final_acc"]
+        if final_metrics != None:
+            return  final_metrics["final_acc"]
+        else: 
+            return 0
         
 
 study = optuna.create_study(study_name=experiment_name, direction='maximize', storage="sqlite:///optuna.db", load_if_exists=True)
@@ -97,10 +109,11 @@ study.optimize(objective, n_trials=500)
 bestparams = study.best_params
 with open(configpath) as f:
         config=yaml.safe_load(f)
-        config["Hyperparameters"]["neurons"] = bestparams["neurons"]
-        config["Hyperparameters"]["layers"] = bestparams["layers"]        
+        config["Hyperparameters"]["cnnlyrs"] = bestparams["cnnlyrs"] 
+        config["Hyperparameters"]["initialfilternr"]= bestparams["initialfilternr"]    
         config["Hyperparameters"]["batch_size"] = bestparams["batch_size"]        
         config["Hyperparameters"]["lr_adam"] = bestparams["lr_adam"]
+        config["Hyperparameters"]["dropout"] = bestparams["dropout"]
+        config["Hyperparameters"]["normalization"] = bestparams["normalization"]
 with open(f"{configpath[:-5]}best.yaml", 'w') as outfile:
     yaml.dump(config, outfile, default_flow_style=False)
-

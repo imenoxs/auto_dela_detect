@@ -1,11 +1,9 @@
 Hyperparameters:
-  batch_size: 14
-  cnnlyrs: 2
-  dropout: false
-  initialfilternr: 16
-  layers: 5
-  lr_adam: 0.03249234396367496
-  neurons: 449
+  batch_size: 35
+  cnnlyrs: 3
+  dropout: true
+  initialfilternr: 128
+  lr_adam: 0.01166866763011877
   normalization: true
   optimizer: adam
 Paths:
