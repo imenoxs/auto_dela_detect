@@ -166,12 +166,20 @@ class pipe_deladetect():
         except: pass
 
         self.predictions.to_csv(self.dstpath+"/prediction.csv")
+        self.gen_confmatrix
 
-    def gen_confmatrix(self):
+    def extract_filename(self, fpath):
+        return os.path.split(fpath)[1].split(".")[0]
+
+    def gen_confmatrix(self, preds, y_true):
+        '''
+        takes preds and y_true and generates a confusion matrix
+        preds and y_true are expected to be a dataframe with the columns containing filename and label
+        '''
         preds= self.predictions[["filename","prediction"]]
-
-        predfilename = list(preds.filename)
-        eval = self.labels_df[self.labels_df.paths.apply(lambda x: os.path.split(x)[1])]
+        preds.filename = preds.filename.apply(lambda x: self.extract_filename(x))
+        
+        eval = self.labels_df[self.labels_df.paths.apply(lambda x: self.extract_filename(x))]
         #counttrue = len(df[df["label"]==1])
         #countfalse = len(df[df["label"]==0])
         

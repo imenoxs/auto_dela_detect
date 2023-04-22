@@ -1,19 +1,12 @@
-Cropping:
-  bottom: 60
-  left: 0
-  right: 0
-  top: 0
-General:
-  conversionstat: false
 Hyperparameters:
-  batch_size: 37
-  epochs: 400
-  epsilon: 0
-  layers: 2
-  lr_adam: 0.09617470794458557
-  neurons: 3378
+  batch_size: 14
+  cnnlyrs: 2
+  dropout: false
+  initialfilternr: 16
+  layers: 5
+  lr_adam: 0.03249234396367496
+  neurons: 449
+  normalization: true
   optimizer: adam
 Paths:
-  dstpath: dst/2303_pez_dnn
-  oldsrc: src/2302_pez_tfds
-  srcpath: src/2302_pez_tfds
+  srcpath: dst/2303_pez500

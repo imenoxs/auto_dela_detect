@@ -20,8 +20,7 @@ def clean_dir(path):
 def load_setup(configpath): # loads config from config.yaml
     with open(configpath, 'r') as file:
         config = yaml.safe_load(file)
-    srcpath = config["Paths"]["srcpath"]
-    dstpath = config["Paths"]["dstpath"]
+    return config
 
 def gen_filename(path2folder, filename):
     i = 1

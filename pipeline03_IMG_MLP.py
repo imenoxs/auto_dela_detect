@@ -174,7 +174,7 @@ class pipe_deladetect():
         self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         lossfunctsdict={
-            "binary_crossentropy": tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            "binary_crossentropy": tf.keras.losses.BinaryCrossentropy(),
         }
         optimizerdict={
             "adam" : tf.keras.optimizers.Adam(learning_rate=lr_adam),
@@ -191,10 +191,10 @@ class pipe_deladetect():
                 )
         self.callbackslst.append(cb_earlystop)
 
-        cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
-                save_best_only= True)
-        if self.trial ==  None: self.callbackslst.append(cb_checkpoint)
+        #cb_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        #        self.srcpath+"/model/epoche_{epoch:02d}-acc_{val_accuracy:.2f}-loss_{val_loss:.2f}.hdf5",
+        #        save_best_only= True)
+        # if self.trial ==  None: self.callbackslst.append(cb_checkpoint)
 
         optuna_lambda =  tf.keras.callbacks.LambdaCallback(
             on_epoch_end= lambda epoch, logs: self.pruning(epoch,logs)
