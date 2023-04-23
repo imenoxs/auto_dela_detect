@@ -57,14 +57,12 @@ def objective(trial):
             yaml.dump(config, outfile, default_flow_style=False)
 
         #Clear clutter from previous TensorFlow graphs and matplotlib plots.
-        dsutils.clean_dir(os.path.join(srcpath,"temp"))
-
-        #load dataset
-        ds_train, ds_val = pipe.load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
-        
+        dsutils.clean_dir(os.path.join(srcpath,"temp"))        
         #create model (try except block due catching errors for impossible models)
         try:
             model=pipe.create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization)
+            #load dataset
+            ds_train, ds_val = pipe.load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
             history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
             final_metrics=pipe.analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath, history=history)
             if best_loss == None or best_loss >= final_metrics["final_loss"] or best_acc<= final_metrics["final_acc"]:
