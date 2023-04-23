@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import os
 import Scripts.dsutils as dsutils
 from sklearn.metrics import confusion_matrix ,roc_auc_score, roc_curve, precision_recall_curve, det_curve
-import optuna
 import numpy as np
 
 
@@ -63,10 +62,6 @@ def train(model=None, train_images=None, test_images=None, lr=None, cb_lst=[], t
                 )
     cb_lst.append(cb_earlystop)
 
-    optuna_lambda =  tf.keras.callbacks.LambdaCallback(
-        on_epoch_end= lambda epoch, logs:   pruning(epoch,logs, trial)
-        )
-    if trial != None: cb_lst.append(optuna_lambda)
     optimizerdict={
             "adam" : tf.keras.optimizers.Adam(learning_rate=lr),
             }
@@ -77,13 +72,7 @@ def train(model=None, train_images=None, test_images=None, lr=None, cb_lst=[], t
                         validation_data=(test_images), callbacks=cb_lst)
     return history
 
-def pruning(step, logs, trial):
-    objectiveval=logs["val_loss"]
-    trial.report(objectiveval, step)
-    if trial.should_prune():
-        raise optuna.TrialPruned()     
-
-def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr=""):
+def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr="", history=None):
     dstpath= os.path.join(dstpath,"temp")
     dsutils.clean_dir(dstpath)
     val_loss, val_acc = model.evaluate(val_dataset)
@@ -91,23 +80,60 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr=""):
     y_pred = y_pred_prob.round().astype("int")
     y_true = np.concatenate([y for x, y in val_dataset], axis=0)
 
+    #plot loss and accuracy curve from training
+    train_acc = history.history['accuracy']
+    train_val_acc = history.history['val_accuracy']
+    train_loss = history.history['loss']
+    train_val_loss = history.history['val_loss']
+    epochs = range(1, len(train_acc) + 1)
+    xlim=int(len(epochs)/5+1)*5
+    plt.plot(epochs, train_acc, label='Training acc')
+    plt.plot(epochs, train_val_acc, label='Validation acc')
+    plt.title('Training and validation accuracy', fontsize=18)
+    ax = plt.gca()
+    ax.set_ylim([0, 1])
+    ax.set_xlim([0,xlim])
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Accuracy', fontsize=18)
+    plt.legend()
+    plt.savefig(os.path.join(dstpath,"trainacc"))
+    plt.close("all")         
+
+    plt.plot(epochs, train_loss, label='Training loss')
+    plt.plot(epochs, train_val_loss, label='Validation loss')
+    ax = plt.gca()
+    ax.set_ylim([0, 10])
+    ax.set_xlim([0,xlim])
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.title('Training and validation loss', fontsize=18)
+    plt.legend()
+    plt.savefig(os.path.join(dstpath,"trainloss"))
+    plt.close("all")      
+
+
     #confusion matrix
+    class_names=("nodefect","defect")
     conf_matrix = confusion_matrix(y_true, y_pred)
-    fig, ax = plt.subplots(figsize=(7.5, 7.5))
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
     for i in range(len(conf_matrix)):
         for j in range(len(conf_matrix[1])):
             ax.text(x=j, y=i,s=conf_matrix[i][j], va='center', ha='center', size='xx-large')
     plt.xlabel('Predictions', fontsize=18)
     ax.xaxis.tick_bottom()
+    ax.set_xticks([0,1])
+    ax.set_xticklabels(class_names)
     plt.ylabel('Actuals', fontsize=18)
+    ax.set_yticks([0,1])
+    ax.set_yticklabels(class_names)
     plt.title(f'Confusion Matrix', fontsize=18)
     fig.savefig(dstpath+"/confusion"+str(trialnr))
     plt.close("all")      
 
     # calculating precision, recall and f1 score
     tn, fp, fn, tp = conf_matrix.ravel()
-    precision=tp/(tp+fp)
+    precision=tp/(tp+fp) if fp !=0 and tp != 0 else 1
     recall=tp/(tp+fn)
     f1=tp/(tp+(fn+fp)/2)
 
@@ -164,7 +190,7 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr=""):
     print("Final val_acc: " + str(val_acc))
     return finalmetrics
 
-def main(cb_lst):
+def main(cb_lst=[], model=None):
     config = dsutils.load_setup(os.path.join("configs","pipeline05config.yaml"))
     srcpath = config["Paths"]["srcpath"]
 
@@ -186,7 +212,7 @@ def main(cb_lst):
     ds_train, ds_val = load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
     if model == None: model = create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization)
     history = train(model, ds_train, ds_val, lr=lr)
-    final_metrics=analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath)
+    final_metrics=analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath, history=history)
     return final_metrics["final_acc"]
 
 if __name__ == "__main__":
