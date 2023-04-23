@@ -13,6 +13,8 @@ experiment_name= "pipeline05_IMG_CNN_MaximizeRun1"
 best_loss = None
 best_acc = None
 def objective(trial):
+    tf.keras.backend.clear_session() #clear old tensorflow data
+
     #global variables to save best values and save best models
     global experiment_name
     global best_loss
@@ -56,7 +58,6 @@ def objective(trial):
 
         #Clear clutter from previous TensorFlow graphs and matplotlib plots.
         dsutils.clean_dir(os.path.join(srcpath,"temp"))
-        tf.keras.backend.clear_session()
 
         #load dataset
         ds_train, ds_val = pipe.load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
@@ -66,7 +67,7 @@ def objective(trial):
             model=pipe.create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization)
             history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
             final_metrics=pipe.analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath, history=history)
-            if best_loss == None or best_loss > final_metrics["final_loss"] or best_acc< final_metrics["final_acc"]:
+            if best_loss == None or best_loss >= final_metrics["final_loss"] or best_acc<= final_metrics["final_acc"]:
                 best_loss = final_metrics["final_loss"]
                 best_acc = final_metrics["final_acc"]
                 model.save(os.path.join(srcpath,"temp","model.hdf5"))
@@ -83,9 +84,21 @@ def objective(trial):
                 print("*************************************")
                 with open(os.path.join(srcpath,"temp","exception.txt"), "w") as f:
                     f.write(str(e))
-                mlflow.set_tag("crashed",True)
+                mlflow.set_tag("valerror",True)
                 mlflow.log_artifacts(os.path.join(srcpath,"temp"))          
             raise optuna.TrialPruned()
+        except Exception as e:
+            print("*************************************")
+            print("Crashed")
+            print("*************************************")
+            with open(os.path.join(srcpath,"temp","exception.txt"), "w") as f:
+                f.write(str(e))
+            mlflow.set_tag("crashed",True)
+            mlflow.log_artifacts(os.path.join(srcpath,"temp"))
+            raise optuna.TrialPruned()
+
+
+
         
 
 

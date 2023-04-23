@@ -2,11 +2,11 @@ General:
   imagehight: 98
   imagewidth: 325
 Hyperparameters:
-  batch_size: 1
-  cnnlyrs: 3
+  batch_size: 5
+  cnnlyrs: 1
   dropout: true
-  initialfilternr: 16
-  lr_adam: 0.0025885551978273836
+  initialfilternr: 128
+  lr_adam: 0.06002003765553237
   normalization: true
   optimizer: adam
 Paths:
