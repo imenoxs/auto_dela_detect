@@ -1,0 +1,18 @@
+Cropping:
+  bottom: 70
+  left: 2
+  right: 0
+  top: 0
+Erodil:
+  kernel: 1
+Paths:
+  dstpath: ./dst/2303_pez500
+  srcpath: ./dst/2303_pez500
+  labelsfname: labels.csv
+
+Processing:
+  thrval: 44  
+  dil_iters: 6
+  ero_iters: 2
+  smoothing_val: 0
+  movinge_av: 5

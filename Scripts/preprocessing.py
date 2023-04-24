@@ -39,18 +39,13 @@ def gen_labelescsv(dstpath):
     files_df.to_csv(os.path.join(dstpath,"labels.csv"))
 
 if __name__ == "__main__":
-    configpath = os.path.join("configs","pipeline06config.yaml")
-    labels_df_path = os.path.join("src","2303_pez500","2303_pez500_labels.csv")
-    dstpath = os.path.join("dst","2303_pez500")
     srcpath = os.path.join("src","2303_pez500")
+    labels_df_path = os.path.join(srcpath,"2303_pez500_labels.csv")
+    dstpath = os.path.join("dst","2303_pez500")
     cut_vals={"bottom":70,
             "left":0,
             "top":0,
             "right":2}
-    
-    cwd = os.path.split(os.path.dirname(os.path.abspath(__file__)))[0]
     labels_df = pd.read_csv(labels_df_path, index_col=0)
-    #config = dsutils.load_setup(configpath=os.path.join(cwd,configpath))
-    
     main(dstpath=dstpath, labels_df=labels_df, cut_vals=cut_vals)
     gen_labelescsv(dstpath)

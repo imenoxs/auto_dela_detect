@@ -138,9 +138,9 @@ class pipe_deladetect():
     def save_preds(self):
         self.predictions.to_csv(self.dstpath+"/prediction.csv")
 
-    def one_cycle(self):
+    def one_cycle(self, img_lst):
         # takes one image and processes it
-        self.load_new_image(self.train_img_paths[self.currentimagenr])
+        self.load_new_image(img_lst[self.currentimagenr])
         self.thr_image()
         self.ero_dil()
         self.analyse()
@@ -157,16 +157,27 @@ class pipe_deladetect():
         self.labels_df = pd.read_csv(os.path.join(self.config["Paths"]["srcpath"],"labels.csv"),index_col=0)
         self.eval_df = self.labels_df.sample(n=int(len(self.labels_df)*0.2), random_state=230421)
         self.train_df = self.labels_df.drop(self.eval_df.index)
+        self.eval_df.to_csv(os.path.join(self.dstpath,"eval_df"))
+        self.train_df
         self.train_img_paths = list(self.train_df.paths)
         self.eval_img_paths= list(self.eval_df.paths)
         self.clean_dir(self.dstpath+"/processed")
+
         try:
             while True: 
-                self.one_cycle()
-        except: pass
+                self.one_cycle(self.train_img_paths)
+        except IndexError as idxe:
+            pass
+        except Exception as e:
+            raise e
 
-        self.predictions.to_csv(self.dstpath+"/prediction.csv")
-        self.gen_confmatrix
+        self.predictions.to_csv(self.dstpath+"/predictiontrain.csv")
+
+        # evaluation
+        self.predictions=[]
+
+        
+        self.gen_confmatrix(self.predictions)
 
     def extract_filename(self, fpath):
         return os.path.split(fpath)[1].split(".")[0]
