@@ -38,11 +38,10 @@ def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=
         plot_overview(img_orig, img, colsum, peaks, fpath)
     return pred
 
-
 def plot_overview(img_orig, img_thr, colsum, peaks, fpath):
     path, fname = os.path.split(fpath)
     fname = fname.split('.')[0]
-    rootpath = os.path.split(path)[0]
+    rootpath = os.path.split(os.path.split(path)[0])[0]
     savepath = os.path.join(rootpath, 'temp',fname)
 
     aspectratio = "auto"
@@ -129,7 +128,6 @@ def evaluate(y_true, y_pred, dstpath, trialnr):
     return accuracy
 
 def run_dataset(dataset, config):
-
     thrval = config["Processing"]["thrval"]
     ero_iters = config["Processing"]["ero_iters"]
     dil_iters = config["Processing"]["dil_iters"]
@@ -163,7 +161,7 @@ def main(trial=None):
     #loading and splitting dataset
     df_labels = pd.read_csv(os.path.join(dstpath,labelsfname),index_col=0)
     
-    y_true = df_labels[["paths","labels"]]
+    y_true = df_labels[["paths","labels"]].copy()
     y_true.paths = y_true['paths'].apply(lambda x: os.path.split(x)[1].split('.')[0])
     y_true.columns = ["fname","label"]
     y_true.label = y_true['label'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])

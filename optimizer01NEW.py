@@ -6,7 +6,7 @@ from Scripts import dsutils
 import os
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline01_IMG_Manual_NEW_RUN2"
+experiment_name= "pipeline01_IMG_Manual_NEW_RUN000"
 
 
 def objective(trial):
@@ -38,5 +38,5 @@ def objective(trial):
     return acc
 
 study = optuna.create_study(study_name=experiment_name, direction='maximize', storage="sqlite:///optuna.db", load_if_exists=True)
-study.optimize(objective, n_trials=500)
+study.optimize(objective, n_trials=3000)
 study.best_params

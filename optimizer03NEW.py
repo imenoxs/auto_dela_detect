@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline03configNEW.yaml"
-experiment_name= "pipeline03_IMG_MLPNEW_Run0"
+experiment_name= "pipeline03_IMG_MLPNEW_Run0DEL"
 
 best_loss = None
 best_acc = None
