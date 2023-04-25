@@ -10,7 +10,7 @@ import inspect
 import yaml
 from sklearn.metrics import confusion_matrix
 
-best_val = 0.0
+best_val = 0.636
 
 def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=False):
     # analysing the image
@@ -43,7 +43,7 @@ def plot_overview(img_orig, img_thr, colsum, peaks, fpath):
     path, fname = os.path.split(fpath)
     fname = fname.split('.')[0]
     rootpath = os.path.split(path)[0]
-    savepath = os.path.join(rootpath, 'overview',fname)
+    savepath = os.path.join(rootpath, 'temp',fname)
 
     aspectratio = "auto"
     fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
@@ -124,7 +124,7 @@ def evaluate(y_true, y_pred, dstpath, trialnr):
     if accuracy >= best_val:
         best_val = accuracy
         fig = get_cm(cm)
-        fig.savefig(os.path.join(dstpath,"cm",f'trial{trialnr}'))
+        fig.savefig(os.path.join(dstpath,"temp",f'cm_trial{trialnr}'))
         
     return accuracy
 
@@ -135,6 +135,7 @@ def run_dataset(dataset, config):
     dil_iters = config["Processing"]["dil_iters"]
     smoothing_val = config["Processing"]["smoothing_val"]
     movinge_av = config["Processing"]["movinge_av"]
+    peakthr = config["Processing"]["peakthr"]
     #setting up environment variables
     make_plot = True
     predictions = pd.DataFrame(columns=["fname","peaks","prediction", "criteria"])
@@ -143,7 +144,7 @@ def run_dataset(dataset, config):
         img = load_new_image(path)
         img_thr = thr_img(img, thrval)
         img_erodil = ero_dil_img(img_thr, ero_iters, dil_iters)
-        preds = predict(img_erodil, path, smoothing_val, movinge_av, img, make_plot=make_plot)
+        preds = predict(img_erodil, path, smoothing_val, movinge_av, img, make_plot=make_plot, peakthr=peakthr)
         predictions.loc[len(predictions)] = preds
         make_plot = False
     return predictions

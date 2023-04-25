@@ -1,0 +1,13 @@
+Hyperparameters:
+  batch_size: 37
+  layers: 2
+  lr_adam: 0.09617470794458557
+  neurons: 3378
+  optimizer: adam
+  dropout: true
+  kernel_init: he_normal
+General:
+  imagehight: 98
+  imagewidth: 325
+Paths:
+  srcpath: dst/2303_pez500
