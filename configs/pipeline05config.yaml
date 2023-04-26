@@ -2,12 +2,12 @@ General:
   imagehight: 98
   imagewidth: 325
 Hyperparameters:
-  batch_size: 280
+  batch_size: 10
   cnnlyrs: 3
-  dropout: true
+  dropout: false
   initialfilternr: 16
-  lr_adam: 0.052838547746831735
-  normalization: false
+  lr_adam: 0.014581712540923816
+  normalization: true
   optimizer: adam
 Paths:
   srcpath: dst/2303_pez500

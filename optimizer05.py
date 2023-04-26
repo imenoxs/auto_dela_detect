@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline05_IMG_CNN_MaximizeRun1"
+experiment_name= "pipeline05_IMG_CNN_MaximizeRun1_lowerLrRates"
 
 best_loss = None
 best_acc = None
@@ -75,7 +75,6 @@ def objective(trial):
             mlflow.set_tag("pruned",False)
             return  final_metrics["final_acc"]
         except ValueError as e: 
-
             if trial.should_prune() == False:
                 print("*************************************")
                 print("ValueError")
@@ -84,6 +83,8 @@ def objective(trial):
                     f.write(str(e))
                 mlflow.set_tag("valerror",True)
                 mlflow.log_artifacts(os.path.join(srcpath,"temp"))          
+            raise optuna.TrialPruned()
+        except optuna.exceptions.TrialPruned as e:
             raise optuna.TrialPruned()
         except Exception as e:
             print("*************************************")
@@ -108,11 +109,6 @@ study.optimize(objective, n_trials=500)
 bestparams = study.best_params
 with open(configpath) as f:
         config=yaml.safe_load(f)
-        config["Hyperparameters"]["cnnlyrs"] = bestparams["cnnlyrs"] 
-        config["Hyperparameters"]["initialfilternr"]= bestparams["initialfilternr"]    
-        config["Hyperparameters"]["batch_size"] = bestparams["batch_size"]        
-        config["Hyperparameters"]["lr_adam"] = bestparams["lr_adam"]
-        config["Hyperparameters"]["dropout"] = bestparams["dropout"]
-        config["Hyperparameters"]["normalization"] = bestparams["normalization"]
+        config["Hyperparameters"]=config["Hyperparameters"]|bestparams
 with open(f"{configpath[:-5]}best.yaml", 'w') as outfile:
     yaml.dump(config, outfile, default_flow_style=False)

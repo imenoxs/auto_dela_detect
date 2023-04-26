@@ -19,9 +19,9 @@ def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=
     max=colsum.max() #  determining maximum value for threshold later on for noise reduction
     # some smoothing has to be applied to filter out noise
     colsum = pd.Series(colsum.rolling(moving_av).mean())
-    colsum = colsum.apply(lambda x: 0 if x <= max/100*smoothig_val or np.isnan(x) else x)
+    colsum_smoothed = colsum.apply(lambda x: 0 if x <= max/100*smoothig_val or np.isnan(x) else x)
     #finding peaks
-    peaks, props = scipy.signal.find_peaks(colsum, height=0)
+    peaks, props = scipy.signal.find_peaks(colsum_smoothed, height=0)
 
     #predicting
     predictfunc = lambda peaks: "defect" if len(peaks)>peakthr else "nodefect"
@@ -34,15 +34,16 @@ def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=
             "prediction": prediction,
             "criteria": funcString}
 
-    if make_plot:
-        plot_overview(img_orig, img, colsum, peaks, fpath)
+    if True: #make_plot:
+        plot_overview(img_orig, img, colsum, colsum_smoothed, peaks, fpath)
     return pred
 
-def plot_overview(img_orig, img_thr, colsum, peaks, fpath):
+def plot_overview(img_orig, img_thr, colsum, colsum_smoothed, peaks, fpath):
     path, fname = os.path.split(fpath)
     fname = fname.split('.')[0]
     rootpath = os.path.split(os.path.split(path)[0])[0]
     savepath = os.path.join(rootpath, 'temp',fname)
+    xlim = -85000
 
     aspectratio = "auto"
     fig, axs = plt.subplots(1,4,figsize=(10,5), sharey=True)
@@ -55,15 +56,25 @@ def plot_overview(img_orig, img_thr, colsum, peaks, fpath):
     axs[1].imshow(img_thr, aspect = aspectratio)
     axs[1].title.set_text(f"Processed")
     axs[2].plot(colsum,transform= rot + bases[2])
-    axs[2].title.set_text(f"Pixel Distribution smoothed")
+    axs[2].title.set_text(f"Pixel Distribution")
+    #axs[2].set_xticks([-0,-25000,-50000,-75000])
+    #axs[2].set_xticklabels([0,25000,50000,75000])
+    axs[2].set_xlim(xlim,0)
     axs[2].invert_xaxis()
-    axs[3].plot(colsum,transform= rot + bases[3])
-    axs[3].plot(peaks, colsum[peaks], "x", transform= rot + bases[3])
-    axs[3].title.set_text(f"Local Maxima = {len(peaks)}")
+    axs[3].plot(colsum_smoothed,transform= rot + bases[3])
+    axs[3].plot(peaks, colsum_smoothed[peaks], "x", transform= rot + bases[3])
+    axs[3].title.set_text(f"Pixel Distribution Smoothed\nwith Maxima = {len(peaks)}")
+    axs[3].set_xlim(xlim,0)
+    #axs[3].set_xticks([-0,-25000,-50000,-75000])
+    #axs[3].set_xticklabels([0,25000,50000,75000])
     axs[3].invert_xaxis()
+
     for ax in axs:
-        ax.tick_params(labelrotation=45)
+        #ax.tick_params(labelrotation=20)
+        ax.set_xticks([])
+        ax.set_yticks([])
     # plt.show()
+    fig.suptitle('Pixel Distribution Analysis', fontsize=16)
     fig.savefig(savepath)
     plt.close('all')
 
@@ -166,10 +177,11 @@ def main(trial=None):
     y_true.columns = ["fname","label"]
     y_true.label = y_true['label'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
     y_pred = run_dataset(df_labels, config)
-    y_pred = y_pred[["fname","prediction"]]
+    y_pred = y_pred[["fname","prediction"]].copy()
     y_pred.prediction = y_pred['prediction'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
     df_eval = y_true.join(y_pred.set_index('fname'), on='fname')
     acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, trialnr)
+    print(acc)
     return acc
 if __name__ == '__main__':
     main()

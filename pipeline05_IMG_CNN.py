@@ -52,6 +52,10 @@ def create_model(input_size, cnnlyrs, initialfilternr, dropout, normalization):
     model.add(layers.Dense(1, activation='sigmoid'))
     return model
 
+def myprint(s, path=os.path.join("dst","2303_pez500","temp","modelSummary.txt")):
+    with open(path,'a') as f:
+        print(s, file=f)
+
 def train(model=None, train_images=None, test_images=None, lr=None, cb_lst=[], trial=None):
 
     cb_earlystop= tf.keras.callbacks.EarlyStopping(
@@ -102,7 +106,7 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr="", histor
     plt.plot(epochs, train_loss, label='Training loss')
     plt.plot(epochs, train_val_loss, label='Validation loss')
     ax = plt.gca()
-    ax.set_ylim([0, 10])
+    ax.set_ylim([0, 2])
     ax.set_xlim([0,xlim])
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('Loss', fontsize=18)
@@ -187,6 +191,7 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr="", histor
             "recall": recall,
             "roc_auc": roc_auc_score(y_true=y_true, y_score=y_pred_prob)
         }
+    model.summary(print_fn=myprint) #write model to textfile for documentation
     print("Final val_acc: " + str(val_acc))
     return finalmetrics
 
@@ -200,7 +205,6 @@ def main(cb_lst=[], model=None):
     dropout= config["Hyperparameters"]["dropout"]
     normalization = config["Hyperparameters"]["normalization"]
     lr=config["Hyperparameters"]["lr_adam"]
-
 
     #get one image to extract image dimensions
     for dirpath, _, filenames in os.walk(srcpath):

@@ -93,7 +93,7 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr="", histor
     plt.plot(epochs, train_loss, label='Training loss')
     plt.plot(epochs, train_val_loss, label='Validation loss')
     ax = plt.gca()
-    ax.set_ylim([0, 10])
+    ax.set_ylim([0, 2])
     ax.set_xlim([0,xlim])
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('Loss', fontsize=18)
@@ -178,11 +178,16 @@ def analyse_model(model=None, val_dataset=None, dstpath=None, trialnr="", histor
             "recall": recall,
             "roc_auc": roc_auc_score(y_true=y_true, y_score=y_pred_prob)
         }
+    model.summary(print_fn=myprint)
     print("Final val_acc: " + str(val_acc))
     return finalmetrics
 
+def myprint(s, path=os.path.join("dst","2303_pez500","temp","modelSummary.txt")):
+    with open(path,'a') as f:
+        print(s, file=f)
+
 def main(cb_lst=[], model=None):
-    config = dsutils.load_setup(os.path.join("configs","pipeline03configNEW.yaml"))
+    config = dsutils.load_setup(os.path.join("configs","pipeline03configNew.yaml"))
     srcpath = config["Paths"]["srcpath"]
 
     batchsize = config["Hyperparameters"]["batch_size"]
