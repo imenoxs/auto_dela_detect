@@ -3,11 +3,11 @@ General:
   imagewidth: 325
 Hyperparameters:
   batch_size: 2
-  dropout: false
-  kernel_init: he_normal
-  layers: 0
-  lr_adam: 0.0018538452677798545
-  neurons: 32
+  dropout: true
+  kernel_init: glorot_uniform
+  layers: 1
+  lr_adam: 0.09583026968059294
+  neurons: 10187
   optimizer: adam
 Paths:
   srcpath: dst/2303_pez500

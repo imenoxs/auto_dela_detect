@@ -39,9 +39,9 @@ def gen_labelescsv(dstpath):
     files_df.to_csv(os.path.join(dstpath,"labels.csv"))
 
 if __name__ == "__main__":
-    srcpath = os.path.join("src","2303_pez500")
-    labels_df_path = os.path.join(srcpath,"2303_pez500_labels.csv")
-    dstpath = os.path.join("dst","2303_pez500")
+    srcpath = os.path.join("src","2303_pez500","evaluationset")
+    labels_df_path = "src/2303_pez500/2303_pez500_eval_labels.csv"
+    dstpath = os.path.join("dst","2303_pez500EVALUATION",'data')
     cut_vals={"bottom":70,
             "left":0,
             "top":0,

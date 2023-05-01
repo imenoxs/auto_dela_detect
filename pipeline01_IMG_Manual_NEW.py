@@ -183,5 +183,33 @@ def main(trial=None):
     acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, trialnr)
     print(acc)
     return acc
+
+def eval(trial=None):
+    dstpath = 'dst/2303_pez500EVALUATION'
+    labelsfname = 'labels.csv'
+    #loading and splitting dataset
+    df_labels = pd.read_csv(os.path.join(dstpath,labelsfname),index_col=0)
+    eval_config = {'Processing':{
+        'dil_iters': 22,
+        'ero_iters': 4,
+        'movinge_av': 3,
+        'peakthr': 1,
+        'smoothing_val': 10,
+        'thrval': 243
+    }}
+    
+    y_true = df_labels[["paths","labels"]].copy()
+    y_true.paths = y_true['paths'].apply(lambda x: os.path.split(x)[1].split('.')[0])
+    y_true.columns = ["fname","label"]
+    y_true.label = y_true['label'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
+    y_pred = run_dataset(df_labels, eval_config)
+    y_pred = y_pred[["fname","prediction"]].copy()
+    y_pred.prediction = y_pred['prediction'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
+    df_eval = y_true.join(y_pred.set_index('fname'), on='fname')
+    acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, '0')
+    print(acc)
+    return acc
+
 if __name__ == '__main__':
-    main()
+    #main()
+    eval()
