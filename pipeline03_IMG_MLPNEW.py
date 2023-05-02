@@ -35,8 +35,8 @@ def create_model(input_size, layers, neurons, dropout, kernel_init):
     model = models.Sequential()
     model.add(tf.keras.layers.Input(shape=(input_size[0], input_size[1], 1)))
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(neurons, activation='relu', kernel_initializer=kernel_init))
-    if dropout: model.add(tf.keras.layers.Dropout(dropoutrate))
+#    model.add(tf.keras.layers.Dense(neurons, activation='relu', kernel_initializer=kernel_init))
+#    if dropout: model.add(tf.keras.layers.Dropout(dropoutrate))
     for i in range(layers):
         model.add(tf.keras.layers.Dense(neurons, activation='relu', kernel_initializer=kernel_init))
         if dropout: model.add(tf.keras.layers.Dropout(dropoutrate))

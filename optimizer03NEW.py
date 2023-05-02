@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline03configNew.yaml"
-experiment_name= "pipeline03_IMG_MLPNEW_3CPU"
+experiment_name= "pipeline03_IMG_MLPNEW_7CPU_OptionallyWithHidden"
 
 best_loss = None
 best_acc = None
@@ -37,12 +37,14 @@ def objective(trial):
         #load config and set parameters
         with open(configpath) as f:
             config=yaml.safe_load(f)
-        batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [280,140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
-        layers=config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 5)
-        neurons=config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 32, 21234)
-        lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.000000001, 0.1)
-        dropout=config["Hyperparameters"]["dropout"]=trial.suggest_categorical('dropout', [True, False])
-        kernel_init=config["Hyperparameters"]["kernel_init"]=trial.suggest_categorical('kernel_init', ['he_normal', 'glorot_uniform'])
+        batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
+        layers=config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 3)
+        if layers > 0:
+            neurons=config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 32, 1000)
+        else: neurons=config["Hyperparameters"]["neurons"]=0
+        lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.00001, 0.1)
+        dropout=config["Hyperparameters"]["dropout"]= False #trial.suggest_categorical('dropout', [True, False])
+        kernel_init=config["Hyperparameters"]["kernel_init"]='he_normal'
         srcpath = config["Paths"]["srcpath"]
         imgwidth = config["General"]["imagewidth"]
         imghight = config["General"]["imagehight"]

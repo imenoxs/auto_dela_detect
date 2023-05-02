@@ -2,11 +2,11 @@ General:
   imagehight: 98
   imagewidth: 325
 Hyperparameters:
-  batch_size: 10
+  batch_size: 7
   dropout: false
   kernel_init: he_normal
   layers: 0
-  lr_adam: 0.016988226541459643
+  lr_adam: 0.03428261758562868
   neurons: 0
   optimizer: adam
 Paths:
