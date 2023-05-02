@@ -38,7 +38,7 @@ def objective(trial):
         with open(configpath) as f:
             config=yaml.safe_load(f)
         batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
-        layers=config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 3)
+        layers=config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 2)
         if layers > 0:
             neurons=config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 32, 1000)
         else: neurons=config["Hyperparameters"]["neurons"]=0

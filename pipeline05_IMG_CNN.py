@@ -30,17 +30,20 @@ def create_model(input_size, cnnlyrs, initialfilternr, dropout, normalization):
     multi=0
     #input layer
     model = models.Sequential()
-    model.add(layers.Conv2D(initialfilternr, 7, activation='relu', input_shape=(input_size[0], input_size[1], 1)))
-    model.add(layers.MaxPooling2D(2))
+    model.add(layers.Conv2D(initialfilternr, 7, activation='relu', padding='same', input_shape=(input_size[0], input_size[1], 1)))
     if normalization:
         model.add(layers.BatchNormalization())
+        model.add(layers.Activation('relu'))
+    model.add(layers.MaxPooling2D(2))
     for _ in range(cnnlyrs):
         nrfilters=int(2**multi*initialfilternr)
-        model.add(layers.Conv2D(nrfilters, 3, activation='relu'))
-        model.add(layers.Conv2D(nrfilters, 3, activation='relu'))
-        model.add(layers.MaxPooling2D(2))
+        model.add(layers.Conv2D(nrfilters, 3, padding='same', activation='relu'))
+        model.add(layers.Conv2D(nrfilters, 3, padding='same', activation='relu'))
         if normalization:
             model.add(layers.BatchNormalization())
+            model.add(layers.Activation('relu'))
+        model.add(layers.MaxPooling2D(2))
+
         multi+=1
     model.add(layers.Flatten())
     model.add(layers.Dense(128, activation='relu'))

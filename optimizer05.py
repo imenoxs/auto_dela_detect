@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline05_IMG_CNN_MaximizeRun1_lowerLrRates"
+experiment_name= "pipeline05_IMG_CNN_MaximizeRun2"
 
 best_loss = None
 best_acc = None
@@ -37,10 +37,10 @@ def objective(trial):
         #load config and set parameters
         with open(configpath) as f:
             config=yaml.safe_load(f)
-        initialfilternr=config["Hyperparameters"]["initialfilternr"]=trial.suggest_categorical('initialfilternr', [8,16,32,64,128])
+        initialfilternr=config["Hyperparameters"]["initialfilternr"]=trial.suggest_categorical('initialfilternr', [8,16,32,64,128,256])
         cnnlyrs=config["Hyperparameters"]["cnnlyrs"]=trial.suggest_int('layers', 0, 5)
         batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [280,140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
-        lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.000000001, 0.1)
+        lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.0001, 0.1)
         dropout=config["Hyperparameters"]["dropout"]=trial.suggest_categorical('dropout', [True, False])
         normalization=config["Hyperparameters"]["normalization"]=trial.suggest_categorical('normalization', [True, False])
         srcpath = config["Paths"]["srcpath"]
