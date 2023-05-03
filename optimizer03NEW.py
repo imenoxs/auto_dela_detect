@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline03configNew.yaml"
-experiment_name= "pipeline03_IMG_MLPNEW_7CPU_OptionallyWithHidden"
+experiment_name= "pipeline03_IMG_MLPNEW_9CPU_1lyr"
 
 best_loss = None
 best_acc = None
@@ -37,13 +37,13 @@ def objective(trial):
         #load config and set parameters
         with open(configpath) as f:
             config=yaml.safe_load(f)
-        batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
-        layers=config["Hyperparameters"]["layers"]=trial.suggest_int('layers', 0, 2)
+        batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [280,140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
+        layers=config["Hyperparameters"]["layers"]=1 #trial.suggest_int('layers', 0, 2)
         if layers > 0:
-            neurons=config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 32, 1000)
+            neurons=config["Hyperparameters"]["neurons"]=trial.suggest_int('neurons', 32, 10000)
         else: neurons=config["Hyperparameters"]["neurons"]=0
         lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.00001, 0.1)
-        dropout=config["Hyperparameters"]["dropout"]= False #trial.suggest_categorical('dropout', [True, False])
+        dropout=config["Hyperparameters"]["dropout"]= trial.suggest_categorical('dropout', [True, False])
         kernel_init=config["Hyperparameters"]["kernel_init"]='he_normal'
         srcpath = config["Paths"]["srcpath"]
         imgwidth = config["General"]["imagewidth"]
@@ -65,8 +65,7 @@ def objective(trial):
             model=pipe.create_model(input_size=image_size, layers=layers, neurons=neurons, dropout=dropout, kernel_init=kernel_init)
             #load dataset
             ds_train, ds_val = pipe.load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
-            with tf.device('/cpu:0'):
-                history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
+            history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
             final_metrics=pipe.analyse_model(model=model, val_dataset=ds_val, dstpath=srcpath, history=history)
             if best_loss == None or best_loss >= final_metrics["final_loss"] or best_acc<= final_metrics["final_acc"]:
                 best_loss = final_metrics["final_loss"]

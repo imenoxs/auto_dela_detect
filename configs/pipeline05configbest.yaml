@@ -2,11 +2,12 @@ General:
   imagehight: 98
   imagewidth: 325
 Hyperparameters:
-  batch_size: 2
+  batch_size: 4
   cnnlyrs: 3
   dropout: false
   initialfilternr: 32
-  lr_adam: 0.023351426888963262
+  layers: 3
+  lr_adam: 0.01085060853570874
   normalization: true
   optimizer: adam
   pooling: true

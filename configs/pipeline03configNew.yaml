@@ -2,12 +2,12 @@ General:
   imagehight: 98
   imagewidth: 325
 Hyperparameters:
-  batch_size: 8
+  batch_size: 2
   dropout: false
   kernel_init: he_normal
-  layers: 0
-  lr_adam: 0.005104415823693265
-  neurons: 0
+  layers: 1
+  lr_adam: 0.002010784540914254
+  neurons: 1682
   optimizer: adam
 Paths:
   srcpath: dst/2303_pez500

@@ -9,6 +9,8 @@ import os
 import inspect
 import yaml
 from sklearn.metrics import confusion_matrix
+from Scripts import dsutils
+import shutil
 
 best_val = 0.636
 
@@ -34,7 +36,7 @@ def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=
             "prediction": prediction,
             "criteria": funcString}
 
-    if True: #make_plot:
+    if make_plot:
         plot_overview(img_orig, img, colsum, colsum_smoothed, peaks, fpath)
     return pred
 
@@ -185,7 +187,9 @@ def main(trial=None):
     return acc
 
 def eval(trial=None):
+    
     dstpath = 'dst/2303_pez500EVALUATION'
+    dsutils.clean_dir(os.path.join(dstpath,'temp'))
     labelsfname = 'labels.csv'
     #loading and splitting dataset
     df_labels = pd.read_csv(os.path.join(dstpath,labelsfname),index_col=0)
@@ -197,7 +201,6 @@ def eval(trial=None):
         'smoothing_val': 10,
         'thrval': 243
     }}
-    
     y_true = df_labels[["paths","labels"]].copy()
     y_true.paths = y_true['paths'].apply(lambda x: os.path.split(x)[1].split('.')[0])
     y_true.columns = ["fname","label"]
@@ -207,6 +210,19 @@ def eval(trial=None):
     y_pred.prediction = y_pred['prediction'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
     df_eval = y_true.join(y_pred.set_index('fname'), on='fname')
     acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, '0')
+    df_misclass = df_eval[df_eval.label != df_eval.prediction]
+    
+    rootpath = os.path.join(dstpath,'data')
+    for index, row in df_misclass.iterrows():
+        if row.label == 1:
+            impath = os.path.join(rootpath,'defect',row.fname+'.png')
+            fname = os.path.join(os.path.join(dstpath,'temp','fn_'+row.fname+'.png'))
+        else: 
+            impath = os.path.join(rootpath,'nodefect',row.fname+'.png')
+            fname = os.path.join(os.path.join(dstpath,'temp','fp_'+row.fname+'.png'))
+        shutil.copyfile(impath,fname)
+
+
     print(acc)
     return acc
 

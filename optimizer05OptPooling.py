@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline05_IMG_CNN10"
+experiment_name= "pipeline05_IMG_CNN_11_OptPooling"
 
 best_loss = None
 best_acc = None
@@ -43,6 +43,7 @@ def objective(trial):
         lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.0001, 0.1)
         dropout=config["Hyperparameters"]["dropout"]=trial.suggest_categorical('dropout', [True, False])
         normalization=config["Hyperparameters"]["normalization"]=trial.suggest_categorical('normalization', [True, False])
+        pooling=config["Hyperparameters"]["pooling"]=trial.suggest_categorical('pooling', [True, False])
         srcpath = config["Paths"]["srcpath"]
         imgwidth = config["General"]["imagewidth"]
         imghight = config["General"]["imagehight"]
