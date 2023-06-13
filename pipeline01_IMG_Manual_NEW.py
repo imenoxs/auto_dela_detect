@@ -11,6 +11,7 @@ import yaml
 from sklearn.metrics import confusion_matrix
 from Scripts import dsutils
 import shutil
+import json
 
 best_val = 0.636
 
@@ -42,7 +43,7 @@ def predict(img, fpath, smoothig_val, moving_av, img_orig, peakthr=2, make_plot=
 
 def plot_overview(img_orig, img_thr, colsum, colsum_smoothed, peaks, fpath):
     path, fname = os.path.split(fpath)
-    fname = fname.split('.')[0]
+    fname = fname.split('.')[0]+f'_{len(peaks)}'
     rootpath = os.path.split(os.path.split(path)[0])[0]
     savepath = os.path.join(rootpath, 'temp',fname)
     xlim = -85000
@@ -126,10 +127,14 @@ def evaluate(y_true, y_pred, dstpath, trialnr):
     f1=tp/(tp+(fn+fp)/2)
 
     full_eval = {
-        'accuracy': accuracy,
+        'acc': accuracy,
         'precision': precision,
         'recall': recall,
         'f1': f1,
+        'fn': fn,
+        'fp': fp,
+        'tn': tn,
+        'tp': tp
     }
 
 
@@ -138,7 +143,7 @@ def evaluate(y_true, y_pred, dstpath, trialnr):
         fig = get_cm(cm)
         fig.savefig(os.path.join(dstpath,"temp",f'cm_trial{trialnr}'))
         
-    return accuracy
+    return full_eval
 
 def run_dataset(dataset, config):
     thrval = config["Processing"]["thrval"]
@@ -157,7 +162,7 @@ def run_dataset(dataset, config):
         img_erodil = ero_dil_img(img_thr, ero_iters, dil_iters)
         preds = predict(img_erodil, path, smoothing_val, movinge_av, img, make_plot=make_plot, peakthr=peakthr)
         predictions.loc[len(predictions)] = preds
-        make_plot = False
+        #make_plot = False
     return predictions
 
 def main(trial=None):
@@ -182,25 +187,16 @@ def main(trial=None):
     y_pred = y_pred[["fname","prediction"]].copy()
     y_pred.prediction = y_pred['prediction'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
     df_eval = y_true.join(y_pred.set_index('fname'), on='fname')
-    acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, trialnr)
-    print(acc)
-    return acc
+    full_eval = evaluate(df_eval["label"], df_eval['prediction'], dstpath, trialnr)
+    return full_eval
 
-def eval(trial=None):
+def eval(trial=None, eval_config=None):
     
     dstpath = 'dst/2303_pez500EVALUATION'
     dsutils.clean_dir(os.path.join(dstpath,'temp'))
     labelsfname = 'labels.csv'
     #loading and splitting dataset
     df_labels = pd.read_csv(os.path.join(dstpath,labelsfname),index_col=0)
-    eval_config = {'Processing':{
-        'dil_iters': 22,
-        'ero_iters': 4,
-        'movinge_av': 3,
-        'peakthr': 1,
-        'smoothing_val': 10,
-        'thrval': 243
-    }}
     y_true = df_labels[["paths","labels"]].copy()
     y_true.paths = y_true['paths'].apply(lambda x: os.path.split(x)[1].split('.')[0])
     y_true.columns = ["fname","label"]
@@ -209,7 +205,7 @@ def eval(trial=None):
     y_pred = y_pred[["fname","prediction"]].copy()
     y_pred.prediction = y_pred['prediction'].apply(lambda x: {'defect': 1, 'nodefect': 0}[x])
     df_eval = y_true.join(y_pred.set_index('fname'), on='fname')
-    acc = evaluate(df_eval["label"], df_eval['prediction'], dstpath, '0')
+    full_eval = evaluate(df_eval["label"], df_eval['prediction'], dstpath, '0')
     df_misclass = df_eval[df_eval.label != df_eval.prediction]
     
     rootpath = os.path.join(dstpath,'data')
@@ -221,11 +217,23 @@ def eval(trial=None):
             impath = os.path.join(rootpath,'nodefect',row.fname+'.png')
             fname = os.path.join(os.path.join(dstpath,'temp','fp_'+row.fname+'.png'))
         shutil.copyfile(impath,fname)
-
-
-    print(acc)
-    return acc
+    return full_eval
 
 if __name__ == '__main__':
+
     #main()
-    eval()
+    if True:
+        eval_config = {'Processing':{
+            'ero_iters': 3,
+            'dil_iters': 31,
+            'movinge_av': 3,
+            'smoothing_val': 21,
+            'thrval': 251,
+            'peakthr': 1
+        }}
+        full_eval = eval(eval_config=eval_config)
+        strfinalmetrics = {}
+        for key in full_eval.keys():
+            strfinalmetrics[key] = str(full_eval[key])
+        with open(os.path.join('dst/2303_pez500EVALUATION/temp',"eval_metrics.yaml"),"w") as f:
+            f.write(json.dumps(strfinalmetrics, indent=4))

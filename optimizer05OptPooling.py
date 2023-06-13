@@ -1,6 +1,6 @@
 import optuna
 import yaml
-import pipeline05_IMG_CNN as pipe
+import pipeline05_IMG_CNNOptPooling as pipe
 import mlflow
 import tensorflow as tf
 import datetime
@@ -8,7 +8,7 @@ import os
 import Scripts.dsutils as dsutils
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline05_IMG_CNN_11_OptPooling"
+experiment_name= "pipeline05_IMG_CNN_11_OptPooling2"
 
 best_loss = None
 best_acc = None
@@ -37,8 +37,8 @@ def objective(trial):
         #load config and set parameters
         with open(configpath) as f:
             config=yaml.safe_load(f)
-        initialfilternr=config["Hyperparameters"]["initialfilternr"]=trial.suggest_categorical('initialfilternr', [8,16,32,64,128,256])
-        cnnlyrs=config["Hyperparameters"]["cnnlyrs"]=trial.suggest_int('layers', 0, 5)
+        initialfilternr=config["Hyperparameters"]["nr_filter"]=trial.suggest_categorical('nr_filter', [8,16,32,64,128,256])
+        cnnlyrs=config["Hyperparameters"]["nr_layers"]=trial.suggest_int('nr_layers', 0, 5)
         batchsize=config["Hyperparameters"]["batch_size"]=trial.suggest_categorical('batch_size', [280,140,70,56,40,35,28,20,14,10,8,7,5,4,2,1])
         lr=config["Hyperparameters"]["lr_adam"]=trial.suggest_float('lr_adam', 0.0001, 0.1)
         dropout=config["Hyperparameters"]["dropout"]=trial.suggest_categorical('dropout', [True, False])
@@ -61,7 +61,7 @@ def objective(trial):
         dsutils.clean_dir(os.path.join(srcpath,"temp"))        
         #create model (try except block due catching errors for impossible models)
         try:
-            model=pipe.create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization)
+            model=pipe.create_model(input_size=image_size, cnnlyrs=cnnlyrs, initialfilternr=initialfilternr, dropout=dropout, normalization=normalization, pooling=pooling)
             #load dataset
             ds_train, ds_val = pipe.load_ds(os.path.join(srcpath,"data"), batch_size=batchsize, image_size=image_size)
             history = pipe.train(model, ds_train, ds_val, lr=lr, trial=trial, cb_lst=cb_lst)
@@ -97,15 +97,9 @@ def objective(trial):
             mlflow.log_artifacts(os.path.join(srcpath,"temp"))
             raise optuna.TrialPruned()
 
-
-
-        
-
-
 study = optuna.create_study(study_name=experiment_name, direction='maximize', storage="sqlite:///optuna.db", load_if_exists=True)
 
 study.optimize(objective, n_trials=500)
-
 
 bestparams = study.best_params
 with open(configpath) as f:

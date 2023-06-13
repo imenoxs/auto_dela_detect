@@ -6,7 +6,7 @@ from Scripts import dsutils
 import os
 
 configpath = "configs/pipeline05config.yaml"
-experiment_name= "pipeline01_IMG_Manual_NEW_RUN000"
+experiment_name= "pipeline01_IMG_Manual_NEW_RUN1Final"
 
 
 def objective(trial):
@@ -31,11 +31,11 @@ def objective(trial):
     experiment_id=mlflow.get_experiment_by_name(experiment_name).experiment_id # extracting experiment ID to be able to manually start runs in that scope
     with mlflow.start_run(experiment_id=experiment_id, run_name=f"Trial {trial.number}"):
         mlflow.log_params(config["Processing"])
-        acc = pipeline01_IMG_Manual_NEW.main(trial)
-        mlflow.log_metric('acc', acc)
+        full_eval = pipeline01_IMG_Manual_NEW.main(trial)
+        mlflow.log_metrics(full_eval)
         mlflow.log_artifacts(os.path.join(dstpath,'temp'))
 
-    return acc
+    return full_eval['acc']
 
 study = optuna.create_study(study_name=experiment_name, direction='maximize', storage="sqlite:///optuna.db", load_if_exists=True)
 study.optimize(objective, n_trials=3000)

@@ -3,8 +3,12 @@ This repo contains several approaches to detect delaminations in cfrp images fro
 The several pipeline python files each contain one approach.
 Each pipeline also has a optimizer python file with the corresponding number.
 The optimizers use the optuna framework to optimize the parameters of the respective approach.
-To see the results of the optuna training you can start the environment with `optuna-dashboard sqlite:///optuna.db`
+To see the results of the optuna training you can start the environment with 
+
+`optuna-dashboard sqlite:///optuna.db`
+or
 `mlflow ui --backend-store-uri sqlite:///MLFlow.db`
+
 in the configs folder there is also a yaml file containing the configuration of the pipelines.
 If the pipeline is run the configuration gets read from the associated file.
 
@@ -17,3 +21,11 @@ If the pipeline is run the configuration gets read from the associated file.
 - pipeline02.py: Here a one layer neuronal network is being used to do a classification of the image data
 - pipeline03.py. here a deep neuronal network is used to do image classification
 
+# MLflow Troubleshooting
+If copying the mlflow runs folder to another location the paths in the database have to bechanged.
+This can be done with the fallowing db querries:
+```SQL
+UPDATE tablename SET columnname = replace( columnname, '/home/imenoxs/ubc_code/', '/Volumes/T7/Bachlorarbeit/PipelineLogs/' ) WHERE columnname LIKE '/home/imenoxs/ubc_code/%';
+```
+In  the runs table the column artifact_uri has to be changed
+In the experiments table the column artifact_location has to be changed

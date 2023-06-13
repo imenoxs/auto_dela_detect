@@ -100,15 +100,9 @@ def objective(trial):
             mlflow.log_artifacts(os.path.join(srcpath,"temp"))
             raise optuna.TrialPruned()
 
-
-
-        
-
-
 study = optuna.create_study(study_name=experiment_name, direction='maximize', storage="sqlite:///optuna.db", load_if_exists=True)
 
 study.optimize(objective, n_trials=5000)
-
 
 bestparams = study.best_params
 with open(configpath) as f:

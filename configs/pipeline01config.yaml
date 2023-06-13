@@ -3,9 +3,9 @@ Paths:
   labelsfname: labelsnew.csv
   srcpath: ./dst/2303_pez500
 Processing:
-  dil_iters: 48
-  ero_iters: 1
-  movinge_av: 5
-  peakthr: 0
-  smoothing_val: 89
-  thrval: 9
+  dil_iters: 30
+  ero_iters: 3
+  movinge_av: 3
+  peakthr: 1
+  smoothing_val: 13
+  thrval: 251

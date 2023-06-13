@@ -8,3 +8,16 @@ mlruns/
 *.db
 .ipynb_checkpoints/
 models/
+
+Docs/cdata0001.csv
+Docs/matlab.mat
+Docs/pipe1_Results.csv
+Docs/pipe1misclass.csv
+Docs/pipe2_E1.csv
+Docs/pipe2_E2.csv
+Docs/pipe2_E3.csv
+Docs/pipe2misclass.csv
+Docs/pipe3misclass.csv
+Docs/pipe5_results.csv
+cam.jpg
+zoomed_plot.png

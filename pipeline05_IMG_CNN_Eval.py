@@ -376,4 +376,4 @@ def eval(modelpath):
 
 if __name__ == "__main__":
     #main()
-    print(eval('models/pipe5_run11_trial372_Acc983_1.hdf5'))
+    print(eval('/Users/tilmanseesselberg/Nextcloud2/WIP/Bachelorarbeit/Automation/mlruns/7/80db8786784d43119e093cb7ba7a578c/artifacts/model.hdf5'))
