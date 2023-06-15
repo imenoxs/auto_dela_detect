@@ -8,7 +8,6 @@ def get_imagepaths(fending=".png", rootpath = None): # loads source images
     if image_list == []:
         image_list = glob.glob(f"{rootpath}/*{fending}", recursive=True)
     image_list.sort()
-    raw_image_list = image_list
     return image_list
 
 def clean_dir(path):

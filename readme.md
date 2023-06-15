@@ -1,15 +1,24 @@
 # Repository Overview
 This repo contains several approaches to detect delaminations in cfrp images from ultrasound images or ultrasound radio frequency data.
-The several pipeline python files each contain one approach.
-Each pipeline also has a optimizer python file with the corresponding number.
-The optimizers use the optuna framework to optimize the parameters of the respective approach.
+The python scripts starting with `pipeline0[...]` contain the code for the models.
+The python scripts starting with `optimizer0[...]` contain the optimizer function to optimize the parameters of the respective pipeline.
+
+- pipeline01_IMG_Manual is a deterministic approach applying image processing techniques for classification. optimizer01 is the optimizer for the parameters for the pipeline
+- pipeline02_IMG_MLP is a classification MLP.
+- pipeline03_IMG_CNNOptPooling is a classification CNN.
+
+The results are saved inside the MLFlow.db and optuna.db for pipeline 1 and and E1 and E2 of pipeline 2.
+The files MLFlow_PC.db and optuna_PC.db contai  the results of pipeline 3 and pipeline2 E3
+
 To see the results of the optuna training you can start the environment with 
 
 `optuna-dashboard sqlite:///optuna.db`
 or
 `mlflow ui --backend-store-uri sqlite:///MLFlow.db`
 
-in the configs folder there is also a yaml file containing the configuration of the pipelines.
+Make sure to modify the file name accordingly.
+
+The configs folder contains yaml files holding the configuration of the pipelines.
 If the pipeline is run the configuration gets read from the associated file.
 
 - pipeline01.py: This approach uses simple image processing techniques automatically classifying if the image is showing a delamination or not using the fallowing steps
@@ -22,10 +31,13 @@ If the pipeline is run the configuration gets read from the associated file.
 - pipeline03.py. here a deep neuronal network is used to do image classification
 
 # MLflow Troubleshooting
+When starting mlflow ui returns the error "alembic.util.exc.CommandError: Can't locate revision identified by [...]", make sure your environment uses Python 3.9.16.
+
 If copying the mlflow runs folder to another location the paths in the database have to bechanged.
 This can be done with the fallowing db querries:
 ```SQL
-UPDATE tablename SET columnname = replace( columnname, '/home/imenoxs/ubc_code/', '/Volumes/T7/Bachlorarbeit/PipelineLogs/' ) WHERE columnname LIKE '/home/imenoxs/ubc_code/%';
+UPDATE tablename SET columnname = replace( columnname, '/original/Path/', '/new/Path/' ) WHERE columnname LIKE '/original/Path/%';
 ```
-In  the runs table the column artifact_uri has to be changed
-In the experiments table the column artifact_location has to be changed
+Make sure to keep the "%" following original path after "LIKE".
+
+This has to be done for the **artifact_uri** column in the **runs** table and the **artifact_location** in the **experiments** table.
